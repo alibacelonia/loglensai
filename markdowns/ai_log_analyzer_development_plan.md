@@ -37,7 +37,7 @@ Check boxes as you implement.
 - [x] Redaction pipeline (secrets/PII masking)
 - [x] AIInsight model
 - [x] Prompt + call to LLM for:
-  - [ ] Executive summary
+  - [x] Executive summary
   - [ ] Root cause hypotheses
   - [ ] Remediation steps
 - [ ] Store confidence + evidence references

@@ -823,3 +823,22 @@
   - `docker compose logs --no-color worker --tail=140`
   - end-to-end AI generation verification with `curl` + analysis polling + DB assertions (`llm_call_ok`)
 - Next checkbox: `Executive summary`
+
+## 2026-02-27 11:41:29 PST
+- Checkbox completed: `Executive summary`
+- Implemented:
+  - Verified AI pipeline persists non-empty `AIInsight.executive_summary` for completed analyses.
+  - Marked the `Executive summary` checkbox complete in Section 6.
+- Security/data-integrity decisions:
+  - Verification used synthetic log lines only; AI summary is generated from redacted analysis context.
+- Files modified:
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=90`
+  - `docker compose logs --no-color worker --tail=140`
+  - end-to-end verification with `curl` + analysis polling + DB assertion (`executive_summary_ok`)
+- Next checkbox: `Root cause hypotheses`
