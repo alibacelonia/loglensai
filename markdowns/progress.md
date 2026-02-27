@@ -581,3 +581,29 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `Fingerprint function (exception type + normalized message)`
+
+## 2026-02-27 11:15:39 PST
+- Checkbox completed: `Fingerprint function (exception type + normalized message)`
+- Implemented:
+  - Updated fingerprint generation to use:
+    - extracted exception type (e.g. `ValueError`, `TypeError`, `...Exception`, `...Error`)
+    - normalized message content
+  - Added exception-type extraction helper in normalization module.
+  - Fingerprints now stay stable across variable numeric values while distinguishing different exception types.
+- Security/data-integrity decisions:
+  - Fingerprint logic avoids raw identifiers by normalizing numeric tokens before hashing.
+  - Hash output remains deterministic and compact for clustering keys.
+- Files modified:
+  - `backend/analyses/normalization.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - Fingerprint validation with `manage.py shell` assertions:
+    - same exception + normalized message pattern -> same fingerprint
+    - different exception type -> different fingerprint
+  - `docker compose logs --no-color backend --tail=60`
+  - `docker compose logs --no-color worker --tail=80`
+- Next checkbox: `Baseline clustering by fingerprint`

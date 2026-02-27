@@ -28,7 +28,7 @@ Check boxes as you implement.
 - [x] Stats computation (counts by level/service)
 
 ## 5) Clustering
-- [ ] Fingerprint function (exception type + normalized message)
+- [x] Fingerprint function (exception type + normalized message)
 - [ ] Baseline clustering by fingerprint
 - [ ] TF-IDF similarity merging (optional)
 - [ ] LogCluster model + endpoints

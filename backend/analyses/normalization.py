@@ -6,6 +6,9 @@ from django.utils.dateparse import parse_datetime
 
 
 _NUMBER_PATTERN = re.compile(r"\d+")
+_EXCEPTION_PATTERN = re.compile(
+    r"\b([A-Z][A-Za-z0-9_]*(?:Exception|Error|Fault))\b"
+)
 
 
 def _normalize_message_for_fingerprint(message: str) -> str:
@@ -13,9 +16,17 @@ def _normalize_message_for_fingerprint(message: str) -> str:
     return _NUMBER_PATTERN.sub("<num>", lowered)
 
 
+def extract_exception_type(message: str) -> str:
+    match = _EXCEPTION_PATTERN.search(message)
+    if not match:
+        return "none"
+    return match.group(1)
+
+
 def compute_fingerprint(level: str, service: str, message: str) -> str:
+    exception_type = extract_exception_type(message)
     normalized_message = _normalize_message_for_fingerprint(message)
-    base = f"{level}|{service}|{normalized_message}"
+    base = f"{exception_type}|{normalized_message}"
     return hashlib.sha256(base.encode("utf-8")).hexdigest()[:32]
 
 
