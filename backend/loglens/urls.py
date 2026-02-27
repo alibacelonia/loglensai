@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.urls import include, path
 
 from authn.views import MeView
-from analyses.views import SourceAnalysisListCreateView
+from analyses.views import AnalysisRunStatusView, SourceAnalysisListCreateView
 from core.views import HealthCheckView
 from sources.views import SourceDetailView, SourceListCreateView
 
@@ -23,4 +23,5 @@ urlpatterns = [
         SourceAnalysisListCreateView.as_view(),
         name="source-analyze-create",
     ),
+    path("api/analyses/<int:analysis_id>", AnalysisRunStatusView.as_view(), name="analysis-status"),
 ]

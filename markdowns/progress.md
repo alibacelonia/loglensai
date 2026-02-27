@@ -351,3 +351,29 @@
   - `docker compose logs --no-color worker --tail=120`
   - `docker compose logs --no-color backend --tail=80`
 - Next checkbox: `Status polling endpoint`
+
+## 2026-02-27 11:00:57 PST
+- Checkbox completed: `Status polling endpoint`
+- Implemented:
+  - Added owner-scoped status polling endpoint:
+    - `GET /api/analyses/<analysis_id>`
+  - Endpoint returns the current analysis run state (queued/running/completed/failed) with timestamps and stats payload.
+  - Preserved tenant isolation by filtering analyses through `source__owner=request.user`.
+- Security/data-integrity decisions:
+  - Cross-user polling requests return `404` to avoid leaking existence of analysis IDs.
+- Files modified:
+  - `backend/analyses/views.py`
+  - `backend/loglens/urls.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - End-to-end polling checks with `curl` and assertions:
+    - trigger analysis via `POST /api/sources/<id>/analyze`
+    - poll `GET /api/analyses/<id>` until status `completed`
+    - cross-user `GET /api/analyses/<id>` -> `404`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `Robust line reader (supports gz)`

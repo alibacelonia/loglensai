@@ -49,3 +49,16 @@ class SourceAnalysisListCreateView(APIView):
 
         data = AnalysisRunSerializer(analysis).data
         return Response(data, status=status.HTTP_202_ACCEPTED)
+
+
+class AnalysisRunStatusView(APIView):
+    def get(self, request, analysis_id: int):
+        analysis = (
+            AnalysisRun.objects.select_related("source")
+            .filter(id=analysis_id, source__owner=request.user)
+            .first()
+        )
+        if analysis is None:
+            raise NotFound("Analysis not found.")
+
+        return Response(AnalysisRunSerializer(analysis).data, status=status.HTTP_200_OK)
