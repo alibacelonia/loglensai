@@ -1071,3 +1071,38 @@
     - `GET http://localhost:3100/api/analyses/<id>`
     - `GET http://localhost:3100/api/analyses/<id>/clusters`
 - Next checkbox: `Summary`
+
+## 2026-02-26 20:09:47 PST
+- Checkbox completed: `Summary`
+- Implemented:
+  - Added `ai_insight` summary payload to analysis API serializer so the results page can render executive summary context from backend.
+  - Updated analysis status/list queries to eager-load `ai_insight` for summary reads.
+  - Implemented Summary tab rendering for:
+    - executive summary text
+    - confidence percentage
+    - evidence reference count
+    - explicit empty state when no summary exists
+  - Fixed a regression introduced during this iteration by removing `select_related("ai_insight")` from a `select_for_update()` query in analyze orchestration (PostgreSQL does not support `FOR UPDATE` on nullable outer joins).
+- Security/data-integrity decisions:
+  - Kept summary rendering read-only and owner-scoped through existing authenticated analysis endpoints.
+  - Chose the safer query shape in orchestration to preserve idempotent analyze behavior and avoid runtime 500s.
+- Files modified:
+  - `backend/analyses/serializers.py`
+  - `backend/analyses/views.py`
+  - `frontend/src/components/analyses/analysis-results-tabs.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose ps`
+  - `docker compose logs --no-color backend --tail=160`
+  - `docker compose logs --no-color worker --tail=160`
+  - `docker compose logs --no-color frontend --tail=160`
+  - `docker compose up -d`
+  - `docker compose exec -T backend python manage.py check`
+  - End-to-end verification flow with `curl` + Python assertions:
+    - `POST /api/auth/register`
+    - `POST /api/sources`
+    - `POST /api/sources/<id>/analyze`
+    - `GET /api/analyses/<id>` (backend poll)
+    - `GET http://localhost:3100/api/analyses/<id>` (frontend proxy; validated `ai_insight.executive_summary`)
+- Next checkbox: `Clusters`

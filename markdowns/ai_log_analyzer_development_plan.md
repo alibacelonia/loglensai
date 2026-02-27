@@ -47,7 +47,7 @@ Check boxes as you implement.
 - [x] Apply LogLens theme tokens (globals.css + tailwind.config + dark root class)
 - [x] Upload/paste page
 - [x] Analysis results page with tabs:
-  - [ ] Summary
+  - [x] Summary
   - [ ] Clusters
   - [ ] Timeline
 - [ ] Cluster detail drawer/page

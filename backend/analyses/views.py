@@ -21,7 +21,7 @@ class SourceAnalysisListCreateView(APIView):
 
     def get(self, request, source_id: int):
         source = self._get_owned_source(request.user, source_id)
-        analyses = source.analyses.all().order_by("-created_at")
+        analyses = source.analyses.select_related("ai_insight").all().order_by("-created_at")
         return Response(AnalysisRunSerializer(analyses, many=True).data, status=status.HTTP_200_OK)
 
     @transaction.atomic
@@ -54,7 +54,7 @@ class SourceAnalysisListCreateView(APIView):
 class AnalysisRunStatusView(APIView):
     def get(self, request, analysis_id: int):
         analysis = (
-            AnalysisRun.objects.select_related("source")
+            AnalysisRun.objects.select_related("source", "ai_insight")
             .filter(id=analysis_id, source__owner=request.user)
             .first()
         )

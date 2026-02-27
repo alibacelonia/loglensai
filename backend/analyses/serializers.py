@@ -1,10 +1,23 @@
 from rest_framework import serializers
 
-from analyses.models import AnalysisRun, LogCluster
+from analyses.models import AIInsight, AnalysisRun, LogCluster
+
+
+class AIInsightSummarySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = AIInsight
+        fields = [
+            "executive_summary",
+            "overall_confidence",
+            "evidence_references",
+            "updated_at",
+        ]
+        read_only_fields = fields
 
 
 class AnalysisRunSerializer(serializers.ModelSerializer):
     source_id = serializers.IntegerField(source="source.id", read_only=True)
+    ai_insight = AIInsightSummarySerializer(read_only=True)
 
     class Meta:
         model = AnalysisRun
@@ -18,6 +31,7 @@ class AnalysisRunSerializer(serializers.ModelSerializer):
             "error_message",
             "created_at",
             "updated_at",
+            "ai_insight",
         ]
         read_only_fields = fields
 

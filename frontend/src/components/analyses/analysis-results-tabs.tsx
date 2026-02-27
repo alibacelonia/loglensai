@@ -11,6 +11,12 @@ type AnalysisSummary = {
   created_at: string;
   started_at: string | null;
   finished_at: string | null;
+  ai_insight: {
+    executive_summary: string;
+    overall_confidence: number | null;
+    evidence_references: number[];
+    updated_at: string;
+  } | null;
 };
 
 type ClusterItem = {
@@ -162,6 +168,25 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
                 <p>Total lines: {readStatsNumber(analysis.stats, "total_lines")}</p>
                 <p>Error count: {readStatsNumber(analysis.stats, "error_count")}</p>
               </div>
+              {analysis.ai_insight?.executive_summary ? (
+                <div className="mt-4 space-y-2 rounded-lg border border-border bg-muted/40 p-3">
+                  <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Executive Summary</p>
+                  <p className="text-sm text-foreground">{analysis.ai_insight.executive_summary}</p>
+                  <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+                    <p>
+                      Confidence:{" "}
+                      {typeof analysis.ai_insight.overall_confidence === "number"
+                        ? `${Math.round(analysis.ai_insight.overall_confidence * 100)}%`
+                        : "n/a"}
+                    </p>
+                    <p>Evidence refs: {analysis.ai_insight.evidence_references?.length || 0}</p>
+                  </div>
+                </div>
+              ) : (
+                <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                  Empty state: no executive summary available for this analysis.
+                </p>
+              )}
             </Card>
           )}
 
