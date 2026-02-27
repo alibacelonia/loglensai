@@ -45,10 +45,10 @@ Services:
 ![Dashboard](markdowns/screenshots/dashboard.png)
 
 ### Source Ingestion
-![Source Ingestion](markdowns/screenshots/sources-new.png)
+![Source Ingestion](markdowns/screenshots/source-new.png)
 
-### Analysis Results
-![Analysis Results](markdowns/screenshots/analysis-results.png)
+### Reports
+![Analysis Results](markdowns/screenshots/reports.png)
 
 ## Notes
 - MVP UI runs in dark mode by design.
