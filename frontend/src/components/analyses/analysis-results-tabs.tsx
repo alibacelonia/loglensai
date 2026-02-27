@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { Card } from "@/components/ui/card";
@@ -278,6 +279,12 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
                             <td className="px-3 py-2 align-top">
                               <p className="font-medium">#{cluster.id}</p>
                               <p className="text-muted-foreground">{cluster.title}</p>
+                              <Link
+                                href={`/clusters/${cluster.id}`}
+                                className="text-xs text-primary transition hover:text-primary/80"
+                              >
+                                View details
+                              </Link>
                             </td>
                             <td className="px-3 py-2 align-top text-muted-foreground">{cluster.count}</td>
                             <td className="px-3 py-2 align-top text-muted-foreground">

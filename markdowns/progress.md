@@ -1163,3 +1163,37 @@
     - `GET /api/analyses/<id>/clusters` via frontend proxy (validated timestamped cluster data)
     - `GET /analyses/<id>` (page returns `200`)
 - Next checkbox: `Cluster detail drawer/page`
+
+## 2026-02-26 20:16:34 PST
+- Checkbox completed: `Cluster detail drawer/page`
+- Implemented:
+  - Added frontend proxy endpoint `GET /api/clusters/[clusterId]` with token requirement, numeric ID validation, timeout, and backend-response passthrough handling.
+  - Added cluster detail page route `/clusters/[clusterId]` with dedicated load flow (token input, loading, empty, error states).
+  - Added cluster detail rendering for fingerprint metadata and sample log evidence table.
+  - Linked cluster rows in the analysis Clusters tab to the new detail page (`View details`).
+  - Added client-side masking in sample-event rendering to reduce accidental exposure of sensitive patterns (email, IP, bearer token, key-value secrets, card-like numbers).
+- Security/data-integrity decisions:
+  - Cluster detail fetch remains owner-scoped through backend authorization, routed via same-origin frontend proxy.
+  - Sensitive-pattern masking is applied before sample event text is rendered in the UI.
+- Files modified:
+  - `frontend/src/app/api/clusters/[clusterId]/route.ts`
+  - `frontend/src/app/clusters/[clusterId]/page.tsx`
+  - `frontend/src/components/analyses/cluster-detail-view.tsx`
+  - `frontend/src/components/analyses/analysis-results-tabs.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color frontend --since=2m`
+  - `docker compose logs --no-color backend --since=2m`
+  - `docker compose logs --no-color worker --since=2m`
+  - End-to-end verification flow with `curl` + Python assertions:
+    - `POST /api/auth/register`
+    - `POST /api/sources`
+    - `POST /api/sources/<id>/analyze`
+    - `GET /api/analyses/<id>/clusters` via frontend proxy
+    - `GET /api/clusters/<id>` via frontend proxy (validated detail payload)
+    - `GET /clusters/<id>` (page returns `200`)
+- Next checkbox: `Search/filter events`

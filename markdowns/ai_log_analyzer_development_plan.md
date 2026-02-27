@@ -50,7 +50,7 @@ Check boxes as you implement.
   - [x] Summary
   - [x] Clusters
   - [x] Timeline
-- [ ] Cluster detail drawer/page
+- [x] Cluster detail drawer/page
 - [ ] Search/filter events
 
 ## 8) Export
