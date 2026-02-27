@@ -43,7 +43,7 @@ Check boxes as you implement.
 - [x] Store confidence + evidence references
 
 ## 7) UI
-- [ ] Next.js + shadcn layout (sidebar/topbar)
+- [x] Next.js + shadcn layout (sidebar/topbar)
 - [ ] Apply LogLens theme tokens (globals.css + tailwind.config + dark root class)
 - [ ] Upload/paste page
 - [ ] Analysis results page with tabs:

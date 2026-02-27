@@ -918,3 +918,44 @@
   - `docker compose logs --no-color worker --tail=160`
   - end-to-end verification with `curl` + analysis polling + DB assertion (`confidence_evidence_ok`)
 - Next checkbox: `Next.js + shadcn layout (sidebar/topbar)`
+
+## 2026-02-27 11:51:19 PST
+- Checkbox completed: `Next.js + shadcn layout (sidebar/topbar)`
+- Implemented:
+  - Replaced frontend static placeholder with a runnable Next.js app (App Router + TypeScript + Tailwind setup).
+  - Added shadcn-style utility foundation (`cn`) and `Card` UI primitive.
+  - Implemented app shell with:
+    - left sidebar navigation
+    - top status bar
+    - content area scaffold
+  - Updated frontend compose service to run Next.js on port `3000` (mapped to host `3100`).
+  - Added frontend healthcheck using Node HTTP probe.
+  - Fixed initial Tailwind runtime error by switching to explicit `tailwind.config.js` color mappings.
+- Security/data-integrity decisions:
+  - UI scaffolding is presentation-only and does not expose backend secrets or raw sensitive data.
+  - `html` is forced to dark mode (`class="dark"`) for MVP consistency.
+- Files modified:
+  - `frontend/package.json`
+  - `frontend/next.config.ts`
+  - `frontend/next-env.d.ts`
+  - `frontend/tsconfig.json`
+  - `frontend/postcss.config.js`
+  - `frontend/tailwind.config.js`
+  - `frontend/src/app/layout.tsx`
+  - `frontend/src/app/page.tsx`
+  - `frontend/src/app/globals.css`
+  - `frontend/src/components/layout/app-shell.tsx`
+  - `frontend/src/components/ui/card.tsx`
+  - `frontend/src/lib/utils.ts`
+  - `docker-compose.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose logs --no-color frontend --tail=200`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+  - `curl -sS http://localhost:3100`
+  - `docker compose restart frontend`
+- Next checkbox: `Apply LogLens theme tokens (globals.css + tailwind.config + dark root class)`
