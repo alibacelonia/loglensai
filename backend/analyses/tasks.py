@@ -17,6 +17,7 @@ from analyses.parsers import (
     parse_nginx_log_line,
     parse_timestamp_level_text_line,
 )
+from analyses.clustering import merge_clusters_tfidf
 from analyses.models import AnalysisRun, LogEvent
 from analyses.normalization import normalize_event_fields
 
@@ -197,7 +198,15 @@ def analyze_source(self, analysis_id: int):  # noqa: ARG001
 
     try:
         computed_stats = _process_source_lines(analysis.source, analysis.id)
-        computed_stats["clusters_baseline"] = _build_baseline_clusters(analysis.id)
+        baseline_clusters = _build_baseline_clusters(analysis.id)
+        computed_stats["clusters_baseline"] = baseline_clusters
+        if settings.CLUSTER_TFIDF_ENABLED:
+            computed_stats["clusters_tfidf"] = merge_clusters_tfidf(
+                baseline_clusters,
+                settings.CLUSTER_TFIDF_SIMILARITY_THRESHOLD,
+            )
+        else:
+            computed_stats["clusters_tfidf"] = baseline_clusters
 
         with transaction.atomic():
             analysis = AnalysisRun.objects.select_for_update().get(id=analysis_id)

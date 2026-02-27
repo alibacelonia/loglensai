@@ -30,7 +30,7 @@ Check boxes as you implement.
 ## 5) Clustering
 - [x] Fingerprint function (exception type + normalized message)
 - [x] Baseline clustering by fingerprint
-- [ ] TF-IDF similarity merging (optional)
+- [x] TF-IDF similarity merging (optional)
 - [ ] LogCluster model + endpoints
 
 ## 6) AI insights (guarded)

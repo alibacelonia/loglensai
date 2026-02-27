@@ -636,3 +636,36 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `TF-IDF similarity merging (optional)`
+
+## 2026-02-27 11:19:28 PST
+- Checkbox completed: `TF-IDF similarity merging (optional)`
+- Implemented:
+  - Added lightweight TF-IDF + cosine similarity cluster merging module (`analyses/clustering.py`).
+  - Added merged-cluster output in analysis stats: `clusters_tfidf`.
+  - Added configurable TF-IDF controls:
+    - `CLUSTER_TFIDF_ENABLED`
+    - `CLUSTER_TFIDF_SIMILARITY_THRESHOLD`
+  - Integrated merge step after baseline fingerprint clusters in Celery analysis pipeline.
+- Security/data-integrity decisions:
+  - Merge uses already-normalized cluster sample messages; it does not introduce raw data exposure.
+  - Merge output remains deterministic via stable sort keys.
+- Files modified:
+  - `backend/analyses/clustering.py`
+  - `backend/analyses/tasks.py`
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `docker-compose.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - TF-IDF merge verification flow with `curl` + polling:
+    - upload semantically similar but non-identical error messages
+    - enqueue analysis
+    - poll `GET /api/analyses/<id>`
+    - verified `clusters_tfidf` merges similar baseline clusters (`top_tfidf_count >= 2`)
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `LogCluster model + endpoints`
