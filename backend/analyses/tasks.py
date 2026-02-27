@@ -61,6 +61,12 @@ def _process_source_lines(source, analysis_id: int) -> dict:
         "level_counts": {},
         "service_counts": {},
         "services": [],
+        "guardrails": {
+            "max_lines": settings.ANALYSIS_TASK_MAX_LINES,
+            "max_bytes": settings.ANALYSIS_READER_MAX_BYTES,
+            "task_soft_time_limit_seconds": settings.ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS,
+            "task_time_limit_seconds": settings.ANALYSIS_TASK_TIME_LIMIT_SECONDS,
+        },
     }
     event_batch = []
 

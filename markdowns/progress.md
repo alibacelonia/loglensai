@@ -1408,3 +1408,41 @@
     - repeated rapid analyze calls
     - worker log assertion for absence of `analysis task received unknown analysis_id`
 - Next checkbox: `Timeouts + max lines guardrails`
+
+## 2026-02-26 20:33:26 PST
+- Checkbox completed: `Timeouts + max lines guardrails`
+- Implemented:
+  - Added explicit guardrail metadata to analysis stats output in Celery task processing:
+    - `guardrails.max_lines`
+    - `guardrails.max_bytes`
+    - `guardrails.task_soft_time_limit_seconds`
+    - `guardrails.task_time_limit_seconds`
+  - Confirmed runtime guardrails are active for analysis processing:
+    - Celery soft/hard task time limits are configured and applied on task decorator.
+    - line-reader guardrails enforce max lines and max bytes with truncation markers.
+- Verification highlights:
+  - Executed analysis with `50,005` lines and verified completion with guardrails applied:
+    - `stats.truncated = true`
+    - `stats.truncated_by = line_limit`
+    - `stats.total_lines = 50000`
+    - `stats.guardrails` present with configured values.
+- Security/data-integrity decisions:
+  - Guardrail metadata is read-only telemetry in analysis stats to make limit behavior auditable without exposing sensitive data.
+  - Kept truncation behavior deterministic rather than failing the entire run, preserving repeatability under oversized input.
+- Files modified:
+  - `backend/analyses/tasks.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose restart worker backend`
+  - `docker compose logs --no-color backend --since=2m`
+  - `docker compose logs --no-color worker --since=2m`
+  - Guardrail verification with `curl` + Python assertions:
+    - generated and uploaded >50k-line log file
+    - `POST /api/sources/<id>/analyze`
+    - polled `GET /api/analyses/<id>` until completion
+    - validated truncation and guardrail metadata fields
+- Next checkbox: `Retention policy config`

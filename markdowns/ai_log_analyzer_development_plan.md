@@ -61,7 +61,7 @@ Check boxes as you implement.
 ## 9) Hardening
 - [x] Rate limit analyze requests
 - [x] Enqueue analysis task only on DB commit (avoid pre-commit worker race)
-- [ ] Timeouts + max lines guardrails
+- [x] Timeouts + max lines guardrails
 - [ ] Retention policy config
 - [ ] Audit log events (upload/analyze/export/delete)
 
