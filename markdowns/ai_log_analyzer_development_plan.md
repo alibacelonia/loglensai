@@ -54,7 +54,7 @@ Check boxes as you implement.
 - [x] Search/filter events
 
 ## 8) Export
-- [ ] JSON export endpoint
+- [x] JSON export endpoint
 - [ ] Markdown incident report endpoint
 - [ ] UI download buttons
 

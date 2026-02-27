@@ -1245,3 +1245,43 @@
     - `GET /api/analyses/<id>/events?level=critical` via frontend proxy (validated `400` input validation)
     - `GET /analyses/<id>` (page returns `200`)
 - Next checkbox: `JSON export endpoint`
+
+## 2026-02-26 20:22:36 PST
+- Checkbox completed: `JSON export endpoint`
+- Implemented:
+  - Added backend endpoint `GET /api/analyses/<analysis_id>/export.json` for owner-scoped analysis export.
+  - Export payload includes:
+    - analysis metadata/status/stats
+    - source metadata
+    - clusters
+    - events (normalized, filtered to safe fields)
+    - AI insight payload
+    - export metadata (`exported_at`, event counts, truncation flag)
+  - Added download header for JSON attachment: `Content-Disposition: attachment; filename="analysis-<id>-export.json"`.
+  - Added export guardrail config `EXPORT_MAX_EVENTS` (default `10000`) and truncation signaling fields.
+  - Added additional redaction pass for exported event message/service/trace_id/request_id before response serialization.
+- Security/data-integrity decisions:
+  - Enforced per-user access control on export endpoint; non-owner requests return `404`.
+  - Excluded raw event payload fields from export response (no `raw` content returned).
+  - Added bounded export size to avoid unbounded response generation.
+- Files modified:
+  - `backend/analyses/views.py`
+  - `backend/loglens/urls.py`
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --since=3m`
+  - `docker compose logs --no-color worker --since=3m`
+  - `docker compose logs --no-color frontend --since=3m`
+  - End-to-end verification flow with `curl` + Python assertions:
+    - `POST /api/auth/register` (owner + non-owner users)
+    - `POST /api/sources`
+    - `POST /api/sources/<id>/analyze`
+    - `GET /api/analyses/<id>/export.json` (validated payload keys + redaction marker + attachment header)
+    - `GET /api/analyses/<id>/export.json` as non-owner (validated `404`)
+- Next checkbox: `Markdown incident report endpoint`

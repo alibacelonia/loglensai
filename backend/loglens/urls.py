@@ -5,6 +5,7 @@ from authn.views import MeView
 from analyses.views import (
     AnalysisClusterListView,
     AnalysisEventListView,
+    AnalysisExportJSONView,
     AnalysisRunStatusView,
     ClusterDetailView,
     SourceAnalysisListCreateView,
@@ -39,6 +40,11 @@ urlpatterns = [
         "api/analyses/<int:analysis_id>/events",
         AnalysisEventListView.as_view(),
         name="analysis-event-list",
+    ),
+    path(
+        "api/analyses/<int:analysis_id>/export.json",
+        AnalysisExportJSONView.as_view(),
+        name="analysis-export-json",
     ),
     path("api/clusters/<int:cluster_id>", ClusterDetailView.as_view(), name="cluster-detail"),
 ]

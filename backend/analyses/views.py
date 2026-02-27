@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import transaction
 from django.utils import timezone
 from rest_framework import status
@@ -8,6 +9,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from analyses.models import AnalysisRun, LogCluster, LogEvent
+from analyses.redaction import redact_text
 from analyses.serializers import AnalysisRunSerializer, LogClusterSerializer, LogEventSerializer
 from analyses.tasks import analyze_source
 from sources.models import Source
@@ -156,6 +158,95 @@ class AnalysisEventListView(APIView):
 
         payload = LogEventSerializer(events.order_by("line_no")[:limit], many=True).data
         return Response(payload, status=status.HTTP_200_OK)
+
+
+class AnalysisExportJSONView(APIView):
+    def get(self, request, analysis_id: int):
+        analysis = (
+            AnalysisRun.objects.select_related("source", "ai_insight")
+            .filter(id=analysis_id, source__owner=request.user)
+            .first()
+        )
+        if analysis is None:
+            raise NotFound("Analysis not found.")
+
+        total_events = LogEvent.objects.filter(analysis_run=analysis).count()
+        event_limit = settings.EXPORT_MAX_EVENTS
+        events_qs = LogEvent.objects.filter(analysis_run=analysis).order_by("line_no")
+        export_truncated = total_events > event_limit
+        if export_truncated:
+            events_qs = events_qs[:event_limit]
+
+        events_payload = []
+        for event in events_qs.values(
+            "id",
+            "line_no",
+            "timestamp",
+            "level",
+            "service",
+            "message",
+            "trace_id",
+            "request_id",
+            "tags",
+        ):
+            redacted_message, _, _ = redact_text(event.get("message") or "")
+            redacted_service, _, _ = redact_text(event.get("service") or "")
+            redacted_trace_id, _, _ = redact_text(event.get("trace_id") or "")
+            redacted_request_id, _, _ = redact_text(event.get("request_id") or "")
+            events_payload.append(
+                {
+                    **event,
+                    "service": redacted_service,
+                    "message": redacted_message,
+                    "trace_id": redacted_trace_id or None,
+                    "request_id": redacted_request_id or None,
+                }
+            )
+
+        ai_insight_payload = None
+        if hasattr(analysis, "ai_insight") and analysis.ai_insight is not None:
+            ai_insight_payload = {
+                "executive_summary": analysis.ai_insight.executive_summary,
+                "root_causes": analysis.ai_insight.root_causes,
+                "overall_confidence": analysis.ai_insight.overall_confidence,
+                "evidence_references": analysis.ai_insight.evidence_references,
+                "remediation": analysis.ai_insight.remediation,
+                "runbook": analysis.ai_insight.runbook,
+                "updated_at": analysis.ai_insight.updated_at,
+            }
+
+        payload = {
+            "exported_at": timezone.now(),
+            "analysis": {
+                "id": analysis.id,
+                "status": analysis.status,
+                "started_at": analysis.started_at,
+                "finished_at": analysis.finished_at,
+                "stats": analysis.stats,
+                "error_message": analysis.error_message,
+                "created_at": analysis.created_at,
+                "updated_at": analysis.updated_at,
+            },
+            "source": {
+                "id": analysis.source.id,
+                "name": analysis.source.name,
+                "type": analysis.source.type,
+                "created_at": analysis.source.created_at,
+            },
+            "clusters": LogClusterSerializer(
+                analysis.clusters.all().order_by("-count", "fingerprint"),
+                many=True,
+            ).data,
+            "events": events_payload,
+            "events_count_total": total_events,
+            "events_count_exported": len(events_payload),
+            "events_truncated": export_truncated,
+            "ai_insight": ai_insight_payload,
+        }
+
+        response = Response(payload, status=status.HTTP_200_OK)
+        response["Content-Disposition"] = f'attachment; filename=\"analysis-{analysis.id}-export.json\"'
+        return response
 
 
 class ClusterDetailView(APIView):
