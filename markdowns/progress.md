@@ -607,3 +607,32 @@
   - `docker compose logs --no-color backend --tail=60`
   - `docker compose logs --no-color worker --tail=80`
 - Next checkbox: `Baseline clustering by fingerprint`
+
+## 2026-02-27 11:17:03 PST
+- Checkbox completed: `Baseline clustering by fingerprint`
+- Implemented:
+  - Added baseline clustering computation over persisted `LogEvent` rows grouped by fingerprint.
+  - Stored clustering summary in `AnalysisRun.stats["clusters_baseline"]` with:
+    - fingerprint
+    - count
+    - first_line / last_line
+    - sample message/level/service
+  - Cluster ordering is deterministic (`count` desc, then fingerprint).
+- Security/data-integrity decisions:
+  - Clustering is computed from normalized/fingerprinted event data only, preserving consistency across retries.
+- Files modified:
+  - `backend/analyses/tasks.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - Baseline clustering verification flow with `curl` + polling:
+    - upload repeated exception sample
+    - enqueue analysis
+    - poll `GET /api/analyses/<id>`
+    - verified top cluster count aggregation (`[2, 1]`)
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `TF-IDF similarity merging (optional)`

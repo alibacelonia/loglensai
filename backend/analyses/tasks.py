@@ -2,6 +2,7 @@ import logging
 
 from celery import shared_task
 from django.conf import settings
+from django.db.models import Count, Max, Min
 from django.db import transaction
 from django.utils import timezone
 
@@ -129,6 +130,42 @@ def _process_source_lines(source, analysis_id: int) -> dict:
     return stats
 
 
+def _build_baseline_clusters(analysis_id: int) -> list[dict]:
+    grouped = (
+        LogEvent.objects.filter(analysis_run_id=analysis_id)
+        .values("fingerprint")
+        .annotate(
+            count=Count("id"),
+            first_line=Min("line_no"),
+            last_line=Max("line_no"),
+        )
+        .order_by("-count", "fingerprint")
+    )
+
+    clusters = []
+    for group in grouped:
+        sample = (
+            LogEvent.objects.filter(
+                analysis_run_id=analysis_id, fingerprint=group["fingerprint"]
+            )
+            .order_by("line_no")
+            .first()
+        )
+        clusters.append(
+            {
+                "fingerprint": group["fingerprint"],
+                "count": group["count"],
+                "first_line": group["first_line"],
+                "last_line": group["last_line"],
+                "sample_message": sample.message if sample else "",
+                "level": sample.level if sample else "unknown",
+                "service": sample.service if sample else "",
+            }
+        )
+
+    return clusters
+
+
 @shared_task(
     bind=True,
     soft_time_limit=settings.ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS,
@@ -160,6 +197,7 @@ def analyze_source(self, analysis_id: int):  # noqa: ARG001
 
     try:
         computed_stats = _process_source_lines(analysis.source, analysis.id)
+        computed_stats["clusters_baseline"] = _build_baseline_clusters(analysis.id)
 
         with transaction.atomic():
             analysis = AnalysisRun.objects.select_for_update().get(id=analysis_id)
