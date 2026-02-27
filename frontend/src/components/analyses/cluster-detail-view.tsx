@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Card } from "@/components/ui/card";
 
@@ -45,25 +45,15 @@ function maskSensitiveText(value: string) {
 }
 
 export function ClusterDetailView({ clusterId }: { clusterId: string }) {
-  const [accessToken, setAccessToken] = useState("");
   const [cluster, setCluster] = useState<ClusterDetail | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
 
   async function loadCluster() {
-    if (!accessToken.trim()) {
-      setErrorMessage("Access token is required.");
-      return;
-    }
-
     setIsLoading(true);
     setErrorMessage("");
     try {
-      const response = await fetch(`/api/clusters/${clusterId}`, {
-        headers: {
-          "x-access-token": accessToken.trim()
-        }
-      });
+      const response = await fetch(`/api/clusters/${clusterId}`);
       const body = await response.json();
       if (!response.ok) {
         setErrorMessage(body.detail || "Failed to fetch cluster detail.");
@@ -77,27 +67,21 @@ export function ClusterDetailView({ clusterId }: { clusterId: string }) {
     }
   }
 
+  useEffect(() => {
+    void loadCluster();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [clusterId]);
+
   return (
     <div className="space-y-4">
       <Card className="space-y-3 p-4">
         <div>
-          <h3 className="text-sm font-semibold">Load cluster detail</h3>
+          <h3 className="text-sm font-semibold">Cluster detail</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Enter a JWT access token, then load cluster `{clusterId}`.
+            Cluster `{clusterId}` is loaded using your active authenticated session.
           </p>
         </div>
-        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-          <label className="block w-full text-sm text-muted-foreground">
-            Access token
-            <input
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              type="password"
-              value={accessToken}
-              onChange={(event) => setAccessToken(event.target.value)}
-              placeholder="eyJ..."
-              autoComplete="off"
-            />
-          </label>
+        <div className="flex justify-start">
           <button
             type="button"
             className="rounded-lg border border-primary bg-primary/20 px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
@@ -117,9 +101,7 @@ export function ClusterDetailView({ clusterId }: { clusterId: string }) {
 
       {!cluster && !isLoading && !errorMessage && (
         <Card className="border-dashed p-4">
-          <p className="text-sm text-muted-foreground">
-            Empty state: no cluster detail loaded yet. Provide token and click Load.
-          </p>
+          <p className="text-sm text-muted-foreground">Empty state: no cluster detail loaded yet.</p>
         </Card>
       )}
 

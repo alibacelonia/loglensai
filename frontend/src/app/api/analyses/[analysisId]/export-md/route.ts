@@ -1,49 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 
+import { proxyAuthenticatedBinary } from "@/lib/server-auth";
+
 export const runtime = "nodejs";
 
-const DEFAULT_BACKEND_URL = "http://backend:8000";
 const ANALYSIS_PROXY_TIMEOUT_MS = 20_000;
 
 export async function GET(
   request: NextRequest,
   context: { params: Promise<{ analysisId: string }> }
 ) {
-  const accessToken = request.headers.get("x-access-token")?.trim();
-  if (!accessToken) {
-    return NextResponse.json({ detail: "Access token is required." }, { status: 401 });
-  }
-
   const { analysisId } = await context.params;
   if (!/^\d+$/.test(analysisId)) {
     return NextResponse.json({ detail: "Invalid analysis id." }, { status: 400 });
   }
 
-  const backendUrl = process.env.BACKEND_INTERNAL_URL || DEFAULT_BACKEND_URL;
-  try {
-    const response = await fetch(`${backendUrl}/api/analyses/${analysisId}/export.md`, {
+  return proxyAuthenticatedBinary(
+    {
+      request,
+      path: `/api/analyses/${analysisId}/export.md`,
       method: "GET",
-      headers: {
-        Authorization: `Bearer ${accessToken}`
-      },
-      cache: "no-store",
-      signal: AbortSignal.timeout(ANALYSIS_PROXY_TIMEOUT_MS)
-    });
-
-    const body = await response.arrayBuffer();
-    const contentType = response.headers.get("content-type") || "text/markdown; charset=utf-8";
-    const contentDisposition = response.headers.get("content-disposition");
-    const headers: Record<string, string> = {
-      "content-type": contentType
-    };
-    if (contentDisposition) {
-      headers["content-disposition"] = contentDisposition;
-    }
-    return new NextResponse(body, {
-      status: response.status,
-      headers
-    });
-  } catch {
-    return NextResponse.json({ detail: "Markdown export request failed." }, { status: 502 });
-  }
+      timeoutMs: ANALYSIS_PROXY_TIMEOUT_MS
+    },
+    "text/markdown; charset=utf-8"
+  );
 }

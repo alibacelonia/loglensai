@@ -17,7 +17,6 @@ type SourceResponse = {
 
 export function SourceIngestForm() {
   const [mode, setMode] = useState<Mode>("upload");
-  const [accessToken, setAccessToken] = useState("");
   const [sourceName, setSourceName] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [pastedLogs, setPastedLogs] = useState("");
@@ -28,19 +27,12 @@ export function SourceIngestForm() {
   const pasteByteLength = useMemo(() => new TextEncoder().encode(pastedLogs).length, [pastedLogs]);
 
   const submitDisabled =
-    isSubmitting ||
-    !accessToken.trim() ||
-    (mode === "upload" ? !selectedFile : !pastedLogs.trim() || pasteByteLength > MAX_PASTE_BYTES);
+    isSubmitting || (mode === "upload" ? !selectedFile : !pastedLogs.trim() || pasteByteLength > MAX_PASTE_BYTES);
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setErrorMessage("");
     setSuccess(null);
-
-    if (!accessToken.trim()) {
-      setErrorMessage("Access token is required.");
-      return;
-    }
 
     let fileToSend: File | null = null;
     if (mode === "upload") {
@@ -72,9 +64,6 @@ export function SourceIngestForm() {
     try {
       const response = await fetch("/api/sources", {
         method: "POST",
-        headers: {
-          "x-access-token": accessToken.trim()
-        },
         body: payload
       });
       const body = await response.json();
@@ -91,7 +80,7 @@ export function SourceIngestForm() {
       }
       setSourceName("");
     } catch {
-      setErrorMessage("Request failed. Check frontend/backend connectivity and token validity.");
+      setErrorMessage("Request failed. Check frontend/backend connectivity.");
     } finally {
       setIsSubmitting(false);
     }
@@ -99,26 +88,6 @@ export function SourceIngestForm() {
 
   return (
     <form className="space-y-4" onSubmit={handleSubmit}>
-      <Card className="space-y-4 p-4">
-        <div>
-          <h3 className="text-sm font-semibold">Authentication</h3>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Paste a backend JWT access token for source creation.
-          </p>
-        </div>
-        <label className="block text-sm text-muted-foreground">
-          Access token
-          <input
-            className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none ring-0 focus:border-primary"
-            type="password"
-            value={accessToken}
-            onChange={(event) => setAccessToken(event.target.value)}
-            placeholder="eyJ..."
-            autoComplete="off"
-          />
-        </label>
-      </Card>
-
       <Card className="space-y-4 p-4">
         <div className="flex flex-wrap gap-2">
           <button

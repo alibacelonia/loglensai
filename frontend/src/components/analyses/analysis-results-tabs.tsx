@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Card } from "@/components/ui/card";
 
@@ -118,7 +118,6 @@ function maskSensitiveText(value: string) {
 }
 
 export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
-  const [accessToken, setAccessToken] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [analysis, setAnalysis] = useState<AnalysisSummary | null>(null);
   const [clusters, setClusters] = useState<ClusterItem[]>([]);
@@ -139,21 +138,11 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
       : 0;
 
   async function downloadExport(format: "json" | "md") {
-    const token = accessToken.trim();
-    if (!token) {
-      setDownloadErrorMessage("Access token is required before downloading exports.");
-      return;
-    }
-
     setDownloadingFormat(format);
     setDownloadErrorMessage("");
     try {
       const path = format === "json" ? "export-json" : "export-md";
-      const response = await fetch(`/api/analyses/${analysisId}/${path}`, {
-        headers: {
-          "x-access-token": token
-        }
-      });
+      const response = await fetch(`/api/analyses/${analysisId}/${path}`);
 
       if (!response.ok) {
         let detail = "Export request failed.";
@@ -190,31 +179,27 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
     }
   }
 
-  async function loadEventsWithToken(token: string) {
-    if (!token) {
-      return;
-    }
-
+  async function loadEvents(filters?: { query?: string; level?: string; service?: string }) {
     setIsEventsLoading(true);
     setEventsErrorMessage("");
     try {
       const params = new URLSearchParams();
       params.set("limit", "100");
-      if (eventQuery.trim()) {
-        params.set("q", eventQuery.trim());
+      const query = filters?.query ?? eventQuery.trim();
+      const level = filters?.level ?? eventLevel;
+      const service = filters?.service ?? eventService.trim();
+
+      if (query) {
+        params.set("q", query);
       }
-      if (eventLevel) {
-        params.set("level", eventLevel);
+      if (level) {
+        params.set("level", level);
       }
-      if (eventService.trim()) {
-        params.set("service", eventService.trim());
+      if (service) {
+        params.set("service", service);
       }
 
-      const response = await fetch(`/api/analyses/${analysisId}/events?${params.toString()}`, {
-        headers: {
-          "x-access-token": token
-        }
-      });
+      const response = await fetch(`/api/analyses/${analysisId}/events?${params.toString()}`);
       const body = await response.json();
       if (!response.ok) {
         setEventsErrorMessage(body.detail || "Failed to fetch events.");
@@ -231,26 +216,12 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
   }
 
   async function loadAnalysis() {
-    const token = accessToken.trim();
-    if (!token) {
-      setErrorMessage("Access token is required.");
-      return;
-    }
-
     setIsLoading(true);
     setErrorMessage("");
     try {
       const [analysisResponse, clustersResponse] = await Promise.all([
-        fetch(`/api/analyses/${analysisId}`, {
-          headers: {
-            "x-access-token": token
-          }
-        }),
-        fetch(`/api/analyses/${analysisId}/clusters`, {
-          headers: {
-            "x-access-token": token
-          }
-        })
+        fetch(`/api/analyses/${analysisId}`),
+        fetch(`/api/analyses/${analysisId}/clusters`)
       ]);
 
       const analysisBody = await analysisResponse.json();
@@ -267,7 +238,7 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
 
       setAnalysis(analysisBody);
       setClusters(Array.isArray(clustersBody) ? clustersBody : []);
-      await loadEventsWithToken(token);
+      await loadEvents({ query: "", level: "", service: "" });
     } catch {
       setErrorMessage("Unable to load analysis data.");
     } finally {
@@ -275,34 +246,28 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
     }
   }
 
+  useEffect(() => {
+    void loadAnalysis();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [analysisId]);
+
   return (
     <div className="space-y-4">
       <Card className="space-y-3 p-4">
         <div>
-          <h3 className="text-sm font-semibold">Load analysis</h3>
+          <h3 className="text-sm font-semibold">Analysis data</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Enter a JWT access token, then load analysis `{analysisId}`.
+            Analysis `{analysisId}` is loaded using your active authenticated session.
           </p>
         </div>
-        <div className="flex flex-col gap-3 md:flex-row md:items-end">
-          <label className="block w-full text-sm text-muted-foreground">
-            Access token
-            <input
-              className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
-              type="password"
-              value={accessToken}
-              onChange={(event) => setAccessToken(event.target.value)}
-              placeholder="eyJ..."
-              autoComplete="off"
-            />
-          </label>
+        <div>
           <button
             type="button"
             className="rounded-lg border border-primary bg-primary/20 px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
             disabled={isLoading}
             onClick={loadAnalysis}
           >
-            {isLoading ? "Loading..." : "Load"}
+            {isLoading ? "Refreshing..." : "Refresh"}
           </button>
         </div>
       </Card>
@@ -316,7 +281,7 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
       {!analysis && !isLoading && !errorMessage && (
         <Card className="border-dashed p-4">
           <p className="text-sm text-muted-foreground">
-            Empty state: no analysis loaded yet. Provide token and click Load.
+            Empty state: no analysis loaded yet.
           </p>
         </Card>
       )}
@@ -512,7 +477,13 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
                 type="button"
                 className="rounded-lg border border-primary bg-primary/20 px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
                 disabled={isEventsLoading}
-                onClick={() => loadEventsWithToken(accessToken.trim())}
+                onClick={() =>
+                  loadEvents({
+                    query: eventQuery.trim(),
+                    level: eventLevel,
+                    service: eventService.trim()
+                  })
+                }
               >
                 {isEventsLoading ? "Searching..." : "Apply filters"}
               </button>

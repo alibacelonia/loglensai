@@ -4,14 +4,14 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "LogLens AI",
-  description: "AI log analysis cockpit"
+  title: "AI Log Analyzer",
+  description: "AI Log Analyzer dashboard"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" className="dark">
-      <body>{children}</body>
+      <body className="min-h-screen bg-background text-foreground">{children}</body>
     </html>
   );
 }

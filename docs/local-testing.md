@@ -9,7 +9,7 @@ docker compose up -d --build
 docker compose ps
 ```
 
-## 2) Register a user and capture JWT access token
+## 2) Register a user and capture JWT access token (API validation path)
 ```bash
 REG=$(curl -sS -X POST http://localhost:8000/api/auth/register \
   -H 'Content-Type: application/json' \
@@ -79,10 +79,10 @@ ls -lh /tmp/analysis-export.json /tmp/analysis-report.md
 ```
 
 ## 6) Validate UI flow
-1. Open `http://localhost:3100/sources/new`
-2. Open `http://localhost:3100/analyses/$ANALYSIS_ID`
-3. Paste JWT access token into the page token input
-4. Verify tabs, cluster detail, search/filter, and download buttons
+1. Open `http://localhost:3100/register` and create a test user
+2. Open `http://localhost:3100/sources/new` and upload/paste logs
+3. Open `http://localhost:3100/analyses/$ANALYSIS_ID`
+4. Verify tabs, cluster detail links, search/filter, and download buttons
 
 ## Troubleshooting
 ```bash

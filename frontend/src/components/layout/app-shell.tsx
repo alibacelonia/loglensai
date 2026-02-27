@@ -2,6 +2,7 @@ import { Activity, Database, FileSearch, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import { SessionControls } from "@/components/auth/session-controls";
 import { Card } from "@/components/ui/card";
 
 const NAV_ITEMS = [
@@ -42,8 +43,11 @@ export function AppShell({ children }: { children: ReactNode }) {
               <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">Environment</p>
               <h2 className="text-base font-semibold">Local Development</h2>
             </div>
-            <div className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground">
-              Backend + Worker Online
+            <div className="flex items-center gap-3">
+              <div className="rounded-full border border-border bg-muted px-3 py-1 text-xs text-muted-foreground">
+                Backend + Worker Online
+              </div>
+              <SessionControls />
             </div>
           </Card>
           {children}
