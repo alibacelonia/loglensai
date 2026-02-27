@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 from django.core.exceptions import ImproperlyConfigured
@@ -16,10 +17,16 @@ def _env_bool(name: str, default: bool = False) -> bool:
 
 
 DEBUG = _env_bool("DJANGO_DEBUG", default=False)
-SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", "insecure-dev-secret-key")
+DEFAULT_DEV_SECRET = "insecure-dev-secret-key-not-for-production-000"
+SECRET_KEY = os.getenv("DJANGO_SECRET_KEY", DEFAULT_DEV_SECRET)
 
-if not DEBUG and SECRET_KEY == "insecure-dev-secret-key":
+if not DEBUG and SECRET_KEY == DEFAULT_DEV_SECRET:
     raise ImproperlyConfigured("DJANGO_SECRET_KEY must be set when DJANGO_DEBUG=false")
+
+if not DEBUG and len(SECRET_KEY) < 32:
+    raise ImproperlyConfigured(
+        "DJANGO_SECRET_KEY must be at least 32 characters when DJANGO_DEBUG=false"
+    )
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -37,7 +44,9 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
+    "rest_framework_simplejwt",
     "core",
+    "authn",
 ]
 
 MIDDLEWARE = [
@@ -115,8 +124,26 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    "DEFAULT_AUTHENTICATION_CLASSES": [
+        "rest_framework_simplejwt.authentication.JWTAuthentication",
+    ],
+    "DEFAULT_PERMISSION_CLASSES": [
+        "rest_framework.permissions.IsAuthenticated",
+    ],
 }
 
 REDIS_HOST = os.getenv("REDIS_HOST", "")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 HEALTHCHECK_TIMEOUT_SECONDS = float(os.getenv("HEALTHCHECK_TIMEOUT_SECONDS", "1.5"))
+
+SIMPLE_JWT = {
+    "ACCESS_TOKEN_LIFETIME": timedelta(
+        minutes=int(os.getenv("JWT_ACCESS_TOKEN_MINUTES", "15"))
+    ),
+    "REFRESH_TOKEN_LIFETIME": timedelta(
+        days=int(os.getenv("JWT_REFRESH_TOKEN_DAYS", "7"))
+    ),
+    "ROTATE_REFRESH_TOKENS": _env_bool("JWT_ROTATE_REFRESH_TOKENS", default=True),
+    "BLACKLIST_AFTER_ROTATION": _env_bool("JWT_BLACKLIST_AFTER_ROTATION", default=False),
+    "UPDATE_LAST_LOGIN": True,
+}

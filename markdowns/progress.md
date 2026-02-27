@@ -90,3 +90,48 @@
   - `docker compose logs --no-color worker --tail=40`
   - `curl -fsS http://localhost:8000/healthz`
 - Next checkbox: `Auth (JWT or session)`
+
+## 2026-02-27 10:40:36 PST
+- Checkbox completed: `Auth (JWT or session)`
+- Implemented:
+  - Added JWT auth using `djangorestframework-simplejwt`.
+  - Added auth API endpoints:
+    - `POST /api/auth/register` (creates user and returns access/refresh tokens)
+    - `POST /api/auth/login` (returns access/refresh tokens + user payload)
+    - `POST /api/auth/refresh`
+    - `GET /api/me` (authenticated user profile)
+  - Introduced `authn` app with serializers and views for registration, login, and profile retrieval.
+  - Set DRF secure defaults: JWT authentication and authenticated-by-default API permissions.
+  - Added JWT lifetime/rotation environment settings and updated env examples.
+  - Hardened auth secret defaults:
+    - minimum secret length check when `DJANGO_DEBUG=false`
+    - 32+ character development default key to avoid weak JWT signing warnings
+- Security/data-integrity decisions:
+  - Kept auth responses minimal and non-sensitive (`id`, `username`, `email`, `date_joined`) and avoided returning server-side debug details.
+  - Enforced authenticated-by-default DRF permissions so new endpoints are private unless explicitly opened.
+- Files modified:
+  - `backend/requirements.txt`
+  - `backend/loglens/settings.py`
+  - `backend/loglens/urls.py`
+  - `backend/.env.example`
+  - `docker-compose.yml`
+  - `backend/authn/__init__.py`
+  - `backend/authn/apps.py`
+  - `backend/authn/serializers.py`
+  - `backend/authn/views.py`
+  - `backend/authn/urls.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `curl -fsS http://localhost:8000/healthz`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=40`
+  - `docker compose exec -T backend python manage.py check`
+  - Auth flow verification with `curl`:
+    - unauthenticated `GET /api/me` -> `401`
+    - `POST /api/auth/register` -> `201`
+    - `POST /api/auth/login` -> `200`
+    - authenticated `GET /api/me` -> `200`
+- Next checkbox: `Source model + migrations`

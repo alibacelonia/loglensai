@@ -34,7 +34,7 @@ services:
     command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     environment:
       DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
-      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-loglens-dev-only-secret-key}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-insecure-dev-secret-key-not-for-production-000}
       DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,backend}
       DB_HOST: postgres
       DB_PORT: "5432"

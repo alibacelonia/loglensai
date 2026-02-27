@@ -5,7 +5,7 @@ Check boxes as you implement.
 - [x] Create repo structure: `backend/`, `frontend/`, `infra/`, `markdowns/`
 - [x] Docker Compose: postgres, redis, backend, worker, frontend
 - [x] Django + DRF setup, env loading, health endpoint
-- [ ] Auth (JWT or session)
+- [x] Auth (JWT or session)
 
 ## 2) Sources (Upload/Paste)
 - [ ] Source model + migrations
