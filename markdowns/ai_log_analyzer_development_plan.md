@@ -46,7 +46,7 @@ Check boxes as you implement.
 - [x] Next.js + shadcn layout (sidebar/topbar)
 - [x] Apply LogLens theme tokens (globals.css + tailwind.config + dark root class)
 - [x] Upload/paste page
-- [ ] Analysis results page with tabs:
+- [x] Analysis results page with tabs:
   - [ ] Summary
   - [ ] Clusters
   - [ ] Timeline

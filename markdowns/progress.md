@@ -1029,3 +1029,45 @@
     - `POST http://localhost:3100/api/sources` (paste-simulated mode)
     - `GET http://localhost:8000/api/sources` (owner list count check)
 - Next checkbox: `Analysis results page with tabs:`
+
+## 2026-02-27 12:03:37 PST
+- Checkbox completed: `Analysis results page with tabs:`
+- Implemented:
+  - Added analysis results routes:
+    - `/analyses/[analysisId]` tabbed results page scaffold
+    - `/analyses` index helper page
+  - Added tab UI scaffold for:
+    - Summary
+    - Clusters
+    - Timeline
+  - Added required states on results page:
+    - loading state while fetching analysis data
+    - empty state before loading data
+    - error state on failed token/API fetch
+  - Added same-origin proxy endpoints for owner-scoped analysis reads:
+    - `GET /api/analyses/[analysisId]`
+    - `GET /api/analyses/[analysisId]/clusters`
+  - Proxy endpoints enforce token presence, id format validation, and timeout guardrails.
+- Security/data-integrity decisions:
+  - Browser reads analysis data only through frontend server-side proxies (no direct cross-origin backend calls).
+  - Proxy requires JWT header and rejects invalid/non-numeric analysis IDs.
+- Files modified:
+  - `frontend/src/app/analyses/[analysisId]/page.tsx`
+  - `frontend/src/app/analyses/page.tsx`
+  - `frontend/src/components/analyses/analysis-results-tabs.tsx`
+  - `frontend/src/app/api/analyses/[analysisId]/route.ts`
+  - `frontend/src/app/api/analyses/[analysisId]/clusters/route.ts`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+  - `docker compose logs --no-color frontend --tail=200`
+  - `curl -sS http://localhost:3100/analyses/42`
+  - end-to-end proxy verification with `curl`:
+    - `GET http://localhost:3100/api/analyses/<id>`
+    - `GET http://localhost:3100/api/analyses/<id>/clusters`
+- Next checkbox: `Summary`
