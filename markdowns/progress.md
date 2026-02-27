@@ -989,3 +989,43 @@
   - `curl -sS http://localhost:3100`
   - token verification via `rg` in `globals.css` and `tailwind.config.js`
 - Next checkbox: `Upload/paste page`
+
+## 2026-02-27 12:00:57 PST
+- Checkbox completed: `Upload/paste page`
+- Implemented:
+  - Added `/sources/new` page with two ingestion modes:
+    - file upload
+    - paste logs
+  - Added client form component with required UI states:
+    - loading state on submit
+    - empty states for no-file and no-paste-input
+    - error state for auth/validation/request failures
+    - success state after source creation
+  - Implemented same-origin Next.js proxy endpoint `POST /api/sources` to forward multipart uploads to backend source API.
+  - Added frontend compose env `BACKEND_INTERNAL_URL` for server-side proxy routing.
+  - Updated sidebar navigation link for Sources to route to `/sources/new`.
+- Security/data-integrity decisions:
+  - JWT is sent from UI to same-origin proxy via request header and forwarded server-side; browser never calls backend cross-origin directly.
+  - Paste mode is transformed into a generated `.log` file and sent through existing validated upload path (size/type checks remain enforced).
+  - Proxy enforces token and file presence before forwarding.
+- Files modified:
+  - `frontend/src/app/sources/new/page.tsx`
+  - `frontend/src/components/sources/source-ingest-form.tsx`
+  - `frontend/src/app/api/sources/route.ts`
+  - `frontend/src/components/layout/app-shell.tsx`
+  - `docker-compose.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+  - `docker compose logs --no-color frontend --tail=160`
+  - `curl -sS http://localhost:3100/sources/new`
+  - end-to-end proxy verification with `curl`:
+    - `POST http://localhost:3100/api/sources` (upload mode)
+    - `POST http://localhost:3100/api/sources` (paste-simulated mode)
+    - `GET http://localhost:8000/api/sources` (owner list count check)
+- Next checkbox: `Analysis results page with tabs:`

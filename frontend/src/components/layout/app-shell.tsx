@@ -1,13 +1,14 @@
 import { Activity, Database, FileSearch, ShieldCheck } from "lucide-react";
+import Link from "next/link";
 import type { ReactNode } from "react";
 
 import { Card } from "@/components/ui/card";
 
 const NAV_ITEMS = [
-  { icon: Activity, label: "Dashboard" },
-  { icon: FileSearch, label: "Analyses" },
-  { icon: Database, label: "Sources" },
-  { icon: ShieldCheck, label: "Security" }
+  { icon: Activity, label: "Dashboard", href: "/" },
+  { icon: FileSearch, label: "Analyses", href: "/analyses" },
+  { icon: Database, label: "Sources", href: "/sources/new" },
+  { icon: ShieldCheck, label: "Security", href: "/security" }
 ];
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -22,14 +23,14 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
             <nav className="space-y-1">
               {NAV_ITEMS.map((item) => (
-                <button
+                <Link
                   key={item.label}
+                  href={item.href}
                   className="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-sm text-muted-foreground transition hover:bg-muted hover:text-foreground"
-                  type="button"
                 >
                   <item.icon className="h-4 w-4" />
                   {item.label}
-                </button>
+                </Link>
               ))}
             </nav>
           </Card>
