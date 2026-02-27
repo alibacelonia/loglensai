@@ -413,3 +413,38 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `JSON logs` (under `Parsers`)
+
+## 2026-02-27 11:05:04 PST
+- Checkbox completed: `JSON logs`
+- Implemented:
+  - Added dedicated JSON log line parser in `analyses/parsers.py`.
+  - Parser handles JSON-object lines and normalizes common fields:
+    - timestamp/time variants
+    - level/severity variants mapped to normalized levels
+    - service/component/logger variants
+    - message variants
+  - Integrated JSON parser into analysis task stats pipeline.
+  - Analysis stats now include JSON parsing metrics:
+    - `json_lines`
+    - `error_count` (for `error`/`fatal`)
+    - `level_counts`
+- Security/data-integrity decisions:
+  - Invalid or non-object JSON lines are safely ignored instead of crashing task execution.
+  - Normalization constrains severity values to known categories (`debug/info/warn/error/fatal/unknown`).
+- Files modified:
+  - `backend/analyses/parsers.py`
+  - `backend/analyses/tasks.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - JSON parser verification flow with `curl` and polling:
+    - upload `.jsonl` with valid+invalid lines
+    - enqueue analysis
+    - poll `GET /api/analyses/<id>`
+    - verified stats: `total_lines=3`, `json_lines=2`, `error_count=1`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `timestamp+level text logs`

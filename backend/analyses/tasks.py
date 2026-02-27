@@ -11,13 +11,20 @@ from analyses.line_reader import (
     SourceLineReaderError,
     iter_source_lines,
 )
+from analyses.parsers import parse_json_log_line
 from analyses.models import AnalysisRun
 
 logger = logging.getLogger(__name__)
 
 
 def _count_lines_for_source(source) -> dict:
-    stats = {"total_lines": 0, "truncated": False}
+    stats = {
+        "total_lines": 0,
+        "truncated": False,
+        "json_lines": 0,
+        "error_count": 0,
+        "level_counts": {},
+    }
     try:
         for _line in iter_source_lines(
             source,
@@ -25,6 +32,13 @@ def _count_lines_for_source(source) -> dict:
             max_bytes=settings.ANALYSIS_READER_MAX_BYTES,
         ):
             stats["total_lines"] += 1
+            parsed_json = parse_json_log_line(_line)
+            if parsed_json is not None:
+                stats["json_lines"] += 1
+                level = parsed_json["level"]
+                stats["level_counts"][level] = stats["level_counts"].get(level, 0) + 1
+                if level in {"error", "fatal"}:
+                    stats["error_count"] += 1
     except LineReaderTruncatedByLines:
         stats["truncated"] = True
         stats["truncated_by"] = "line_limit"
@@ -67,7 +81,6 @@ def analyze_source(self, analysis_id: int):  # noqa: ARG001
 
     try:
         computed_stats = _count_lines_for_source(analysis.source)
-        computed_stats.setdefault("error_count", 0)
         computed_stats.setdefault("services", [])
 
         with transaction.atomic():
