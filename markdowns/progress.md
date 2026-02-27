@@ -756,3 +756,34 @@
   - `docker compose logs --no-color worker --tail=120`
   - end-to-end redaction verification with `curl` + analysis polling + DB assertions via `manage.py shell` (`redaction_ok`)
 - Next checkbox: `AIInsight model`
+
+## 2026-02-27 11:37:09 PST
+- Checkbox completed: `AIInsight model`
+- Implemented:
+  - Added `AIInsight` model with one-to-one linkage to `AnalysisRun`.
+  - Included MVP-aligned fields for AI output persistence:
+    - `executive_summary`
+    - `root_causes` (JSON)
+    - `remediation`
+    - `runbook`
+  - Added timestamps (`created_at`, `updated_at`) and model ordering.
+  - Registered `AIInsight` in Django admin.
+  - Added migration `analyses.0004_aiinsight`.
+- Security/data-integrity decisions:
+  - One-to-one relation enforces a single insight record per analysis run.
+  - AI insights remain tied to existing owner-scoped `AnalysisRun`/`Source` chain.
+- Files modified:
+  - `backend/analyses/models.py`
+  - `backend/analyses/admin.py`
+  - `backend/analyses/migrations/0004_aiinsight.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose exec -T backend python manage.py makemigrations analyses`
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+  - `docker compose exec -T backend python manage.py shell -c "...AIInsight create/read assertion..."` (`aiinsight_ok`)
+- Next checkbox: `Prompt + call to LLM for:`

@@ -35,7 +35,7 @@ Check boxes as you implement.
 
 ## 6) AI insights (guarded)
 - [x] Redaction pipeline (secrets/PII masking)
-- [ ] AIInsight model
+- [x] AIInsight model
 - [ ] Prompt + call to LLM for:
   - [ ] Executive summary
   - [ ] Root cause hypotheses

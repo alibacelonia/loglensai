@@ -113,3 +113,23 @@ class LogCluster(models.Model):
 
     def __str__(self) -> str:
         return f"LogCluster {self.analysis_run_id}:{self.fingerprint[:8]}"
+
+
+class AIInsight(models.Model):
+    analysis_run = models.OneToOneField(
+        AnalysisRun,
+        on_delete=models.CASCADE,
+        related_name="ai_insight",
+    )
+    executive_summary = models.TextField(blank=True, default="")
+    root_causes = models.JSONField(default=list, blank=True)
+    remediation = models.TextField(blank=True, default="")
+    runbook = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+    def __str__(self) -> str:
+        return f"AIInsight analysis={self.analysis_run_id}"

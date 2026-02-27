@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from analyses.models import AnalysisRun, LogCluster, LogEvent
+from analyses.models import AIInsight, AnalysisRun, LogCluster, LogEvent
 
 
 @admin.register(AnalysisRun)
@@ -22,3 +22,9 @@ class LogClusterAdmin(admin.ModelAdmin):
     list_display = ("id", "analysis_run", "fingerprint", "count", "first_seen", "last_seen")
     list_filter = ("created_at",)
     search_fields = ("fingerprint", "title")
+
+
+@admin.register(AIInsight)
+class AIInsightAdmin(admin.ModelAdmin):
+    list_display = ("id", "analysis_run", "updated_at")
+    search_fields = ("analysis_run__id", "executive_summary", "remediation")
