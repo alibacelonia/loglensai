@@ -66,6 +66,6 @@ Check boxes as you implement.
 - [x] Audit log events (upload/analyze/export/delete)
 
 ## 10) Portfolio finish
-- [ ] README with architecture diagram + screenshots
+- [x] README with architecture diagram + screenshots
 - [ ] Seed sample logs for demo
 - [ ] “Demo script” steps for a 2–3 min walkthrough

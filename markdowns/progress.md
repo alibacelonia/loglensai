@@ -1538,3 +1538,33 @@
     - delete source
     - verify owner audit event types include `upload`, `analyze_start`, `analyze_finish`, `export`, `delete`
 - Next checkbox: `README with architecture diagram + screenshots`
+
+## 2026-02-26 20:44:14 PST
+- Checkbox completed: `README with architecture diagram + screenshots`
+- Implemented:
+  - Added root `README.md` with:
+    - project overview
+    - architecture section with Mermaid diagram
+    - local run instructions
+    - core feature summary
+    - embedded UI screenshots
+  - Captured and committed fresh local screenshots:
+    - dashboard
+    - source ingestion page
+    - analysis results page
+- Files modified:
+  - `README.md`
+  - `markdowns/screenshots/dashboard.png`
+  - `markdowns/screenshots/sources-new.png`
+  - `markdowns/screenshots/analysis-results.png`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `npx -y playwright@1.52.0 install chromium`
+  - `npx -y playwright@1.52.0 screenshot http://localhost:3100 markdowns/screenshots/dashboard.png`
+  - `npx -y playwright@1.52.0 screenshot http://localhost:3100/sources/new markdowns/screenshots/sources-new.png`
+  - `npx -y playwright@1.52.0 screenshot http://localhost:3100/analyses/42 markdowns/screenshots/analysis-results.png`
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `rg -n 'Architecture|mermaid|screenshots' README.md`
+- Next checkbox: `Seed sample logs for demo`
