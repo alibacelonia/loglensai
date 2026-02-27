@@ -56,7 +56,7 @@ Check boxes as you implement.
 ## 8) Export
 - [x] JSON export endpoint
 - [x] Markdown incident report endpoint
-- [ ] UI download buttons
+- [x] UI download buttons
 
 ## 9) Hardening
 - [ ] Rate limit analyze requests

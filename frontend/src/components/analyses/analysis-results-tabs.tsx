@@ -130,11 +130,65 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
   const [eventService, setEventService] = useState("");
   const [isEventsLoading, setIsEventsLoading] = useState(false);
   const [eventsErrorMessage, setEventsErrorMessage] = useState("");
+  const [downloadErrorMessage, setDownloadErrorMessage] = useState("");
+  const [downloadingFormat, setDownloadingFormat] = useState<"json" | "md" | null>(null);
   const timelinePoints = buildTimelinePoints(clusters);
   const maxTimelineEvents =
     timelinePoints.length > 0
       ? timelinePoints.reduce((maxValue, point) => Math.max(maxValue, point.totalEvents), 0)
       : 0;
+
+  async function downloadExport(format: "json" | "md") {
+    const token = accessToken.trim();
+    if (!token) {
+      setDownloadErrorMessage("Access token is required before downloading exports.");
+      return;
+    }
+
+    setDownloadingFormat(format);
+    setDownloadErrorMessage("");
+    try {
+      const path = format === "json" ? "export-json" : "export-md";
+      const response = await fetch(`/api/analyses/${analysisId}/${path}`, {
+        headers: {
+          "x-access-token": token
+        }
+      });
+
+      if (!response.ok) {
+        let detail = "Export request failed.";
+        try {
+          const body = await response.json();
+          if (body?.detail) {
+            detail = String(body.detail);
+          }
+        } catch {
+          detail = "Export request failed.";
+        }
+        setDownloadErrorMessage(detail);
+        return;
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get("content-disposition") || "";
+      const filenameMatch = contentDisposition.match(/filename=\"?([^\";]+)\"?/i);
+      const fallback = format === "json" ? `analysis-${analysisId}-export.json` : `analysis-${analysisId}-report.md`;
+      const filename = filenameMatch?.[1] || fallback;
+
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = blobUrl;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(blobUrl);
+    } catch {
+      setDownloadErrorMessage("Unable to download export.");
+    } finally {
+      setDownloadingFormat(null);
+    }
+  }
 
   async function loadEventsWithToken(token: string) {
     if (!token) {
@@ -269,6 +323,36 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
 
       {analysis && (
         <>
+          <Card className="p-4">
+            <h3 className="text-sm font-semibold">Exports</h3>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Download analysis artifacts for incident sharing and handoff.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button
+                type="button"
+                className="rounded-lg border border-primary bg-primary/20 px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
+                disabled={downloadingFormat !== null}
+                onClick={() => downloadExport("json")}
+              >
+                {downloadingFormat === "json" ? "Downloading JSON..." : "Download JSON"}
+              </button>
+              <button
+                type="button"
+                className="rounded-lg border border-primary bg-primary/20 px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
+                disabled={downloadingFormat !== null}
+                onClick={() => downloadExport("md")}
+              >
+                {downloadingFormat === "md" ? "Downloading Markdown..." : "Download Markdown"}
+              </button>
+            </div>
+            {downloadErrorMessage && (
+              <p className="mt-3 rounded-lg border border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                Error: {downloadErrorMessage}
+              </p>
+            )}
+          </Card>
+
           <Card className="p-2">
             <div className="grid gap-2 sm:grid-cols-3">
               {TABS.map((tab) => (

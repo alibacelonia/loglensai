@@ -1328,3 +1328,46 @@
     - `GET /api/analyses/<id>/export.md` (validated sections + redaction markers + attachment header)
     - `GET /api/analyses/<id>/export.md` as non-owner (validated `404`)
 - Next checkbox: `UI download buttons`
+
+## 2026-02-26 20:27:13 PST
+- Checkbox completed: `UI download buttons`
+- Implemented:
+  - Added export download controls on the analysis results page:
+    - `Download JSON`
+    - `Download Markdown`
+  - Added frontend same-origin proxy routes for export downloads:
+    - `GET /api/analyses/[analysisId]/export-json`
+    - `GET /api/analyses/[analysisId]/export-md`
+  - Download flow now:
+    - sends JWT via `x-access-token` to frontend proxy
+    - forwards authenticated request to backend export endpoints
+    - reads `Content-Disposition` filename from response
+    - downloads file blob in browser with fallback filename handling
+  - Added UI states for export actions:
+    - per-format downloading labels
+    - error message state for failed export requests
+- Security/data-integrity decisions:
+  - Browser continues to avoid direct cross-origin backend calls; token is sent to same-origin proxy only.
+  - Proxy enforces token presence and numeric analysis-id validation before forwarding.
+- Files modified:
+  - `frontend/src/app/api/analyses/[analysisId]/export-json/route.ts`
+  - `frontend/src/app/api/analyses/[analysisId]/export-md/route.ts`
+  - `frontend/src/components/analyses/analysis-results-tabs.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color frontend --since=3m`
+  - `docker compose logs --no-color backend --since=3m`
+  - `docker compose logs --no-color worker --since=3m`
+  - End-to-end verification flow with `curl` + Python assertions:
+    - `POST /api/auth/register`
+    - `POST /api/sources`
+    - `POST /api/sources/<id>/analyze`
+    - `GET /api/analyses/<id>/export-json` via frontend proxy (validated payload + filename header)
+    - `GET /api/analyses/<id>/export-md` via frontend proxy (validated report sections + filename header)
+    - `GET /api/analyses/<id>/export-json` without token (validated `401`)
+    - `GET /analyses/<id>` (page returns `200`)
+- Next checkbox: `Rate limit analyze requests`
