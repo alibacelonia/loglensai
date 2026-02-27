@@ -82,3 +82,34 @@ class LogEvent(models.Model):
 
     def __str__(self) -> str:
         return f"LogEvent {self.analysis_run_id}:{self.line_no}"
+
+
+class LogCluster(models.Model):
+    analysis_run = models.ForeignKey(
+        AnalysisRun,
+        on_delete=models.CASCADE,
+        related_name="clusters",
+    )
+    fingerprint = models.CharField(max_length=64, db_index=True)
+    title = models.CharField(max_length=255)
+    count = models.PositiveIntegerField()
+    first_seen = models.DateTimeField(null=True, blank=True)
+    last_seen = models.DateTimeField(null=True, blank=True)
+    sample_events = models.JSONField(default=list, blank=True)
+    affected_services = models.JSONField(default=list, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["-count", "fingerprint"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["analysis_run", "fingerprint"],
+                name="logcluster_unique_fingerprint_per_analysis",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["analysis_run", "-count"], name="logcluster_analysis_count_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"LogCluster {self.analysis_run_id}:{self.fingerprint[:8]}"

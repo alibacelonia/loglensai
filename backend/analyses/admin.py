@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from analyses.models import AnalysisRun, LogEvent
+from analyses.models import AnalysisRun, LogCluster, LogEvent
 
 
 @admin.register(AnalysisRun)
@@ -15,3 +15,10 @@ class LogEventAdmin(admin.ModelAdmin):
     list_display = ("id", "analysis_run", "line_no", "level", "service")
     list_filter = ("level", "service")
     search_fields = ("message", "trace_id", "request_id", "fingerprint")
+
+
+@admin.register(LogCluster)
+class LogClusterAdmin(admin.ModelAdmin):
+    list_display = ("id", "analysis_run", "fingerprint", "count", "first_seen", "last_seen")
+    list_filter = ("created_at",)
+    search_fields = ("fingerprint", "title")

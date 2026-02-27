@@ -669,3 +669,34 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `LogCluster model + endpoints`
+
+## 2026-02-27 11:26:33 PST
+- Checkbox completed: `LogCluster model + endpoints`
+- Implemented:
+  - Added persistent `LogCluster` model keyed by `(analysis_run, fingerprint)` with count/timestamps/sample line numbers/affected services.
+  - Persisted baseline cluster output from Celery analysis jobs into `LogCluster` rows in an idempotent way (delete-and-recreate per run).
+  - Added owner-scoped cluster APIs:
+    - `GET /api/analyses/<analysis_id>/clusters`
+    - `GET /api/clusters/<cluster_id>` (includes sample event details).
+  - Registered `LogCluster` in Django admin.
+- Security/data-integrity decisions:
+  - Cluster access is restricted to analysis owners only; cross-user access returns `404`.
+  - Cluster persistence uses normalized/fingerprinted event data and is safe for task retries.
+- Files modified:
+  - `backend/analyses/models.py`
+  - `backend/analyses/migrations/0003_logcluster.py`
+  - `backend/analyses/serializers.py`
+  - `backend/analyses/views.py`
+  - `backend/analyses/tasks.py`
+  - `backend/analyses/admin.py`
+  - `backend/loglens/urls.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+  - `docker compose exec -T backend python manage.py check`
+  - end-to-end cluster endpoint verification via `curl` (owner success and cross-user `404`)
+- Next checkbox: `Parsers:`

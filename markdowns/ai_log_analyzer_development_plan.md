@@ -31,7 +31,7 @@ Check boxes as you implement.
 - [x] Fingerprint function (exception type + normalized message)
 - [x] Baseline clustering by fingerprint
 - [x] TF-IDF similarity merging (optional)
-- [ ] LogCluster model + endpoints
+- [x] LogCluster model + endpoints
 
 ## 6) AI insights (guarded)
 - [ ] Redaction pipeline (secrets/PII masking)

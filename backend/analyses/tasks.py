@@ -18,7 +18,7 @@ from analyses.parsers import (
     parse_timestamp_level_text_line,
 )
 from analyses.clustering import merge_clusters_tfidf
-from analyses.models import AnalysisRun, LogEvent
+from analyses.models import AnalysisRun, LogCluster, LogEvent
 from analyses.normalization import normalize_event_fields
 
 logger = logging.getLogger(__name__)
@@ -167,6 +167,43 @@ def _build_baseline_clusters(analysis_id: int) -> list[dict]:
     return clusters
 
 
+def _persist_log_clusters(analysis_id: int, baseline_clusters: list[dict]) -> None:
+    LogCluster.objects.filter(analysis_run_id=analysis_id).delete()
+
+    clusters_to_create = []
+    for cluster in baseline_clusters:
+        events_qs = LogEvent.objects.filter(
+            analysis_run_id=analysis_id,
+            fingerprint=cluster["fingerprint"],
+        ).order_by("line_no")
+        sample_lines = list(events_qs.values_list("line_no", flat=True)[:5])
+        timestamped = events_qs.exclude(timestamp__isnull=True)
+        first_seen = timestamped.order_by("timestamp").values_list("timestamp", flat=True).first()
+        last_seen = timestamped.order_by("-timestamp").values_list("timestamp", flat=True).first()
+        affected_services = sorted(
+            set(
+                events_qs.exclude(service="")
+                .values_list("service", flat=True)
+            )
+        )
+        title = (cluster.get("sample_message") or cluster["fingerprint"])[:255]
+        clusters_to_create.append(
+            LogCluster(
+                analysis_run_id=analysis_id,
+                fingerprint=cluster["fingerprint"],
+                title=title,
+                count=cluster["count"],
+                first_seen=first_seen,
+                last_seen=last_seen,
+                sample_events=sample_lines,
+                affected_services=affected_services,
+            )
+        )
+
+    if clusters_to_create:
+        LogCluster.objects.bulk_create(clusters_to_create, batch_size=200)
+
+
 @shared_task(
     bind=True,
     soft_time_limit=settings.ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS,
@@ -199,6 +236,7 @@ def analyze_source(self, analysis_id: int):  # noqa: ARG001
     try:
         computed_stats = _process_source_lines(analysis.source, analysis.id)
         baseline_clusters = _build_baseline_clusters(analysis.id)
+        _persist_log_clusters(analysis.id, baseline_clusters)
         computed_stats["clusters_baseline"] = baseline_clusters
         if settings.CLUSTER_TFIDF_ENABLED:
             computed_stats["clusters_tfidf"] = merge_clusters_tfidf(

@@ -6,8 +6,8 @@ from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from analyses.models import AnalysisRun
-from analyses.serializers import AnalysisRunSerializer
+from analyses.models import AnalysisRun, LogCluster, LogEvent
+from analyses.serializers import AnalysisRunSerializer, LogClusterSerializer
 from analyses.tasks import analyze_source
 from sources.models import Source
 
@@ -62,3 +62,41 @@ class AnalysisRunStatusView(APIView):
             raise NotFound("Analysis not found.")
 
         return Response(AnalysisRunSerializer(analysis).data, status=status.HTTP_200_OK)
+
+
+class AnalysisClusterListView(APIView):
+    def get(self, request, analysis_id: int):
+        analysis = (
+            AnalysisRun.objects.select_related("source")
+            .filter(id=analysis_id, source__owner=request.user)
+            .first()
+        )
+        if analysis is None:
+            raise NotFound("Analysis not found.")
+
+        clusters = analysis.clusters.all().order_by("-count", "fingerprint")
+        return Response(LogClusterSerializer(clusters, many=True).data, status=status.HTTP_200_OK)
+
+
+class ClusterDetailView(APIView):
+    def get(self, request, cluster_id: int):
+        cluster = (
+            LogCluster.objects.select_related("analysis_run", "analysis_run__source")
+            .filter(id=cluster_id, analysis_run__source__owner=request.user)
+            .first()
+        )
+        if cluster is None:
+            raise NotFound("Cluster not found.")
+
+        sample_line_numbers = cluster.sample_events or []
+        sample_events = list(
+            LogEvent.objects.filter(
+                analysis_run=cluster.analysis_run,
+                line_no__in=sample_line_numbers,
+            )
+            .order_by("line_no")
+            .values("line_no", "level", "service", "message")
+        )
+        payload = LogClusterSerializer(cluster).data
+        payload["sample_log_events"] = sample_events
+        return Response(payload, status=status.HTTP_200_OK)
