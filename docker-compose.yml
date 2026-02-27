@@ -1,0 +1,106 @@
+name: loglensai
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-loglens}
+      POSTGRES_USER: ${POSTGRES_USER:-loglens}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-loglens_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-loglens} -d ${POSTGRES_DB:-loglens}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+    restart: unless-stopped
+
+  backend:
+    image: alpine:latest
+    working_dir: /app
+    command: ["sh", "/app/scripts/backend_stub.sh"]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-loglens}
+      DB_USER: ${POSTGRES_USER:-loglens}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-loglens_dev_password}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      WAIT_TIMEOUT_SECONDS: "90"
+      BACKEND_PORT: "8000"
+    volumes:
+      - ./backend/scripts:/app/scripts:ro
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8000/healthz || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+  worker:
+    image: alpine:latest
+    working_dir: /app
+    command: ["sh", "/app/scripts/worker_stub.sh"]
+    environment:
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-loglens}
+      DB_USER: ${POSTGRES_USER:-loglens}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-loglens_dev_password}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      WAIT_TIMEOUT_SECONDS: "90"
+      WORKER_HEARTBEAT_SECONDS: "30"
+    volumes:
+      - ./backend/scripts:/app/scripts:ro
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    image: alpine:latest
+    working_dir: /app
+    command: ["sh", "/app/scripts/frontend_stub.sh"]
+    volumes:
+      - ./frontend/static:/app/static:ro
+      - ./frontend/scripts:/app/scripts:ro
+    ports:
+      - "3100:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 5s
+    restart: unless-stopped
+
+volumes:
+  postgres_data:

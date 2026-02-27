@@ -16,3 +16,37 @@
   - `find . -maxdepth 2 -type d | sort`
   - `docker compose up -d` (expected failure at this stage: no compose file yet)
 - Next checkbox: `Docker Compose: postgres, redis, backend, worker, frontend`
+
+## 2026-02-27 10:24:26 PST
+- Checkbox completed: `Docker Compose: postgres, redis, backend, worker, frontend`
+- Implemented:
+  - Added root `docker-compose.yml` with `postgres`, `redis`, `backend`, `worker`, and `frontend` services.
+  - Added startup dependency checks (`WAIT_TIMEOUT_SECONDS`) so backend/worker fail fast if Postgres/Redis are unavailable.
+  - Added backend and frontend lightweight stub servers for service wiring and health checks.
+  - Added container health checks and `depends_on` conditions for deterministic startup ordering.
+  - Adjusted host port bindings for local compatibility: frontend exposed on `3100`, backend on `8000`, Postgres/Redis internal-only.
+- Security/data-integrity decisions:
+  - Kept database/cache access internal to Docker network (no host port publishing for Postgres/Redis) to reduce accidental exposure in local development.
+- Files modified:
+  - `docker-compose.yml`
+  - `backend/scripts/wait_for_dependencies.sh`
+  - `backend/scripts/backend_stub.sh`
+  - `backend/scripts/worker_stub.sh`
+  - `frontend/static/index.html`
+  - `frontend/scripts/frontend_stub.sh`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build` (failed before refactor due daemon/build issues)
+  - `open -a Docker`
+  - `docker info`, `docker version`, `docker context show`
+  - `docker images --format '{{.Repository}}:{{.Tag}}'`
+  - `docker compose down --remove-orphans`
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose logs --no-color backend --tail=100`
+  - `docker compose logs --no-color worker --tail=100`
+  - `docker compose up -d frontend`
+  - `curl -fsS http://localhost:8000/healthz`
+  - `curl -fsS http://localhost:3100 | head -n 5`
+- Next checkbox: `Django + DRF setup, env loading, health endpoint`
