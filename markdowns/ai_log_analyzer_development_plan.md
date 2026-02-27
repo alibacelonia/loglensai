@@ -19,7 +19,7 @@ Check boxes as you implement.
 - [x] Status polling endpoint
 
 ## 4) Parsing + normalization
-- [ ] Robust line reader (supports gz)
+- [x] Robust line reader (supports gz)
 - [ ] Parsers:
   - [ ] JSON logs
   - [ ] timestamp+level text logs

@@ -377,3 +377,39 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `Robust line reader (supports gz)`
+
+## 2026-02-27 11:03:23 PST
+- Checkbox completed: `Robust line reader (supports gz)`
+- Implemented:
+  - Added robust line reader module: `analyses/line_reader.py`.
+  - Reader supports:
+    - plain text uploads
+    - gzip uploads (`.gz` extension or gzip magic bytes)
+    - paste sources
+  - Added safe decoding (`utf-8` with replacement) and guardrails:
+    - max line count
+    - max processed bytes
+  - Integrated line reader into Celery `analyze_source` task for line-based stats.
+- Security/data-integrity decisions:
+  - Invalid gzip streams are handled via controlled reader errors, avoiding raw parser exception leakage.
+  - Reader enforces byte and line limits to bound resource usage during analysis.
+- Files modified:
+  - `backend/analyses/line_reader.py`
+  - `backend/analyses/tasks.py`
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `docker-compose.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - Gzip verification flow with `curl` and polling:
+    - upload `.gz` source
+    - enqueue analysis
+    - poll status until `completed`
+    - verified `stats.total_lines` from decompressed content
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `JSON logs` (under `Parsers`)

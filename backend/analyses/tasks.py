@@ -2,39 +2,38 @@ import logging
 
 from celery import shared_task
 from django.conf import settings
-from django.core.files.storage import default_storage
 from django.db import transaction
 from django.utils import timezone
 
+from analyses.line_reader import (
+    LineReaderTruncatedByBytes,
+    LineReaderTruncatedByLines,
+    SourceLineReaderError,
+    iter_source_lines,
+)
 from analyses.models import AnalysisRun
-from sources.models import Source
 
 logger = logging.getLogger(__name__)
 
 
-def _count_lines_for_source(source: Source) -> dict:
-    max_lines = settings.ANALYSIS_TASK_MAX_LINES
-
-    if source.type == Source.SourceType.PASTE:
-        text = source.content_text or ""
-        if not text:
-            return {"total_lines": 0, "truncated": False}
-        line_count = text.count("\n") + (0 if text.endswith("\n") else 1)
-        return {"total_lines": min(line_count, max_lines), "truncated": line_count > max_lines}
-
-    if source.type == Source.SourceType.UPLOAD and source.file_object_key:
-        if not default_storage.exists(source.file_object_key):
-            return {"total_lines": 0, "truncated": False, "missing_file": True}
-
-        line_count = 0
-        with default_storage.open(source.file_object_key, "rb") as file_obj:
-            for _line in file_obj:
-                line_count += 1
-                if line_count >= max_lines:
-                    return {"total_lines": line_count, "truncated": True}
-        return {"total_lines": line_count, "truncated": False}
-
-    return {"total_lines": 0, "truncated": False}
+def _count_lines_for_source(source) -> dict:
+    stats = {"total_lines": 0, "truncated": False}
+    try:
+        for _line in iter_source_lines(
+            source,
+            max_lines=settings.ANALYSIS_TASK_MAX_LINES,
+            max_bytes=settings.ANALYSIS_READER_MAX_BYTES,
+        ):
+            stats["total_lines"] += 1
+    except LineReaderTruncatedByLines:
+        stats["truncated"] = True
+        stats["truncated_by"] = "line_limit"
+    except LineReaderTruncatedByBytes:
+        stats["truncated"] = True
+        stats["truncated_by"] = "byte_limit"
+    except SourceLineReaderError:
+        stats["reader_error"] = "unreadable_source"
+    return stats
 
 
 @shared_task(
