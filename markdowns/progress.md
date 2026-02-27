@@ -842,3 +842,23 @@
   - `docker compose logs --no-color worker --tail=140`
   - end-to-end verification with `curl` + analysis polling + DB assertion (`executive_summary_ok`)
 - Next checkbox: `Root cause hypotheses`
+
+## 2026-02-27 11:42:29 PST
+- Checkbox completed: `Root cause hypotheses`
+- Implemented:
+  - Verified AI pipeline persists structured `AIInsight.root_causes` hypotheses for completed analyses.
+  - Confirmed at least one hypothesis object with a non-empty title is generated.
+  - Marked the `Root cause hypotheses` checkbox complete in Section 6.
+- Security/data-integrity decisions:
+  - Hypotheses are produced from redacted analysis context and stored under owner-scoped analysis linkage.
+- Files modified:
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=90`
+  - `docker compose logs --no-color worker --tail=140`
+  - end-to-end verification with `curl` + analysis polling + DB assertion (`root_causes_ok`)
+- Next checkbox: `Remediation steps`

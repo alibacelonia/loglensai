@@ -38,7 +38,7 @@ Check boxes as you implement.
 - [x] AIInsight model
 - [x] Prompt + call to LLM for:
   - [x] Executive summary
-  - [ ] Root cause hypotheses
+  - [x] Root cause hypotheses
   - [ ] Remediation steps
 - [ ] Store confidence + evidence references
 
