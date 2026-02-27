@@ -20,7 +20,7 @@ Check boxes as you implement.
 
 ## 4) Parsing + normalization
 - [x] Robust line reader (supports gz)
-- [ ] Parsers:
+- [x] Parsers:
   - [x] JSON logs
   - [x] timestamp+level text logs
   - [x] nginx error/access (basic)
