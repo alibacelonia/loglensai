@@ -34,6 +34,9 @@ Services:
 - Frontend: `http://localhost:3100`
 - Backend: `http://localhost:8000`
 
+## Local Testing
+- Full local validation steps: [`docs/local-testing.md`](docs/local-testing.md)
+
 ## Screenshots
 ### Dashboard
 ![Dashboard](markdowns/screenshots/dashboard.png)
