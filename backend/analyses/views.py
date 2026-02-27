@@ -3,13 +3,18 @@ from django.utils import timezone
 from rest_framework import status
 from rest_framework.exceptions import APIException
 from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from analyses.models import AnalysisRun, LogCluster, LogEvent
-from analyses.serializers import AnalysisRunSerializer, LogClusterSerializer
+from analyses.serializers import AnalysisRunSerializer, LogClusterSerializer, LogEventSerializer
 from analyses.tasks import analyze_source
 from sources.models import Source
+
+ALLOWED_EVENT_LEVELS = {"debug", "info", "warn", "error", "fatal", "unknown"}
+DEFAULT_EVENT_QUERY_LIMIT = 100
+MAX_EVENT_QUERY_LIMIT = 200
 
 
 class SourceAnalysisListCreateView(APIView):
@@ -76,6 +81,81 @@ class AnalysisClusterListView(APIView):
 
         clusters = analysis.clusters.all().order_by("-count", "fingerprint")
         return Response(LogClusterSerializer(clusters, many=True).data, status=status.HTTP_200_OK)
+
+
+class AnalysisEventListView(APIView):
+    def get(self, request, analysis_id: int):
+        analysis = (
+            AnalysisRun.objects.select_related("source")
+            .filter(id=analysis_id, source__owner=request.user)
+            .first()
+        )
+        if analysis is None:
+            raise NotFound("Analysis not found.")
+
+        events = LogEvent.objects.filter(analysis_run=analysis)
+        search_query = request.query_params.get("q", "").strip()
+        if len(search_query) > 300:
+            raise ValidationError({"q": "Search query exceeds 300 characters."})
+
+        level = request.query_params.get("level", "").strip().lower()
+        if level:
+            if level not in ALLOWED_EVENT_LEVELS:
+                raise ValidationError(
+                    {"level": f"Unsupported level '{level}'. Allowed: {', '.join(sorted(ALLOWED_EVENT_LEVELS))}."}
+                )
+            events = events.filter(level=level)
+
+        service = request.query_params.get("service", "").strip()
+        if len(service) > 128:
+            raise ValidationError({"service": "Service filter exceeds 128 characters."})
+        if service:
+            events = events.filter(service__icontains=service)
+
+        if search_query:
+            events = events.filter(message__icontains=search_query)
+
+        line_from_param = request.query_params.get("line_from", "").strip()
+        line_to_param = request.query_params.get("line_to", "").strip()
+        if line_from_param:
+            try:
+                line_from = int(line_from_param)
+            except ValueError as error:
+                raise ValidationError({"line_from": "line_from must be an integer."}) from error
+            if line_from < 1:
+                raise ValidationError({"line_from": "line_from must be greater than or equal to 1."})
+            events = events.filter(line_no__gte=line_from)
+        else:
+            line_from = None
+
+        if line_to_param:
+            try:
+                line_to = int(line_to_param)
+            except ValueError as error:
+                raise ValidationError({"line_to": "line_to must be an integer."}) from error
+            if line_to < 1:
+                raise ValidationError({"line_to": "line_to must be greater than or equal to 1."})
+            events = events.filter(line_no__lte=line_to)
+        else:
+            line_to = None
+
+        if line_from is not None and line_to is not None and line_from > line_to:
+            raise ValidationError({"line_to": "line_to must be greater than or equal to line_from."})
+
+        limit_param = request.query_params.get("limit", "").strip()
+        if limit_param:
+            try:
+                limit = int(limit_param)
+            except ValueError as error:
+                raise ValidationError({"limit": "limit must be an integer."}) from error
+        else:
+            limit = DEFAULT_EVENT_QUERY_LIMIT
+
+        if limit < 1 or limit > MAX_EVENT_QUERY_LIMIT:
+            raise ValidationError({"limit": f"limit must be between 1 and {MAX_EVENT_QUERY_LIMIT}."})
+
+        payload = LogEventSerializer(events.order_by("line_no")[:limit], many=True).data
+        return Response(payload, status=status.HTTP_200_OK)
 
 
 class ClusterDetailView(APIView):

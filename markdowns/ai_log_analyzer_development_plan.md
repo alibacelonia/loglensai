@@ -51,7 +51,7 @@ Check boxes as you implement.
   - [x] Clusters
   - [x] Timeline
 - [x] Cluster detail drawer/page
-- [ ] Search/filter events
+- [x] Search/filter events
 
 ## 8) Export
 - [ ] JSON export endpoint

@@ -31,6 +31,17 @@ type ClusterItem = {
   affected_services: string[];
 };
 
+type EventItem = {
+  id: number;
+  line_no: number;
+  timestamp: string | null;
+  level: string;
+  service: string;
+  message: string;
+  trace_id: string | null;
+  request_id: string | null;
+};
+
 type TabKey = "summary" | "clusters" | "timeline";
 
 const TABS: Array<{ key: TabKey; label: string }> = [
@@ -97,21 +108,77 @@ function formatHourLabel(hourKey: string) {
   });
 }
 
+function maskSensitiveText(value: string) {
+  return value
+    .replace(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi, "[REDACTED_EMAIL]")
+    .replace(/\b(?:\d[ -]*?){13,16}\b/g, "[REDACTED_CARD]")
+    .replace(/\b(?:\d{1,3}\.){3}\d{1,3}\b/g, "[REDACTED_IP]")
+    .replace(/Bearer\s+[A-Za-z0-9\-_\.]+/gi, "Bearer [REDACTED_TOKEN]")
+    .replace(/\b(?:api[_-]?key|token|secret|password)\s*[:=]\s*\S+/gi, "[REDACTED_SECRET]");
+}
+
 export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
   const [accessToken, setAccessToken] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
   const [analysis, setAnalysis] = useState<AnalysisSummary | null>(null);
   const [clusters, setClusters] = useState<ClusterItem[]>([]);
+  const [events, setEvents] = useState<EventItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const [eventQuery, setEventQuery] = useState("");
+  const [eventLevel, setEventLevel] = useState("");
+  const [eventService, setEventService] = useState("");
+  const [isEventsLoading, setIsEventsLoading] = useState(false);
+  const [eventsErrorMessage, setEventsErrorMessage] = useState("");
   const timelinePoints = buildTimelinePoints(clusters);
   const maxTimelineEvents =
     timelinePoints.length > 0
       ? timelinePoints.reduce((maxValue, point) => Math.max(maxValue, point.totalEvents), 0)
       : 0;
 
+  async function loadEventsWithToken(token: string) {
+    if (!token) {
+      return;
+    }
+
+    setIsEventsLoading(true);
+    setEventsErrorMessage("");
+    try {
+      const params = new URLSearchParams();
+      params.set("limit", "100");
+      if (eventQuery.trim()) {
+        params.set("q", eventQuery.trim());
+      }
+      if (eventLevel) {
+        params.set("level", eventLevel);
+      }
+      if (eventService.trim()) {
+        params.set("service", eventService.trim());
+      }
+
+      const response = await fetch(`/api/analyses/${analysisId}/events?${params.toString()}`, {
+        headers: {
+          "x-access-token": token
+        }
+      });
+      const body = await response.json();
+      if (!response.ok) {
+        setEventsErrorMessage(body.detail || "Failed to fetch events.");
+        setEvents([]);
+        return;
+      }
+      setEvents(Array.isArray(body) ? body : []);
+    } catch {
+      setEventsErrorMessage("Unable to load events.");
+      setEvents([]);
+    } finally {
+      setIsEventsLoading(false);
+    }
+  }
+
   async function loadAnalysis() {
-    if (!accessToken.trim()) {
+    const token = accessToken.trim();
+    if (!token) {
       setErrorMessage("Access token is required.");
       return;
     }
@@ -122,12 +189,12 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
       const [analysisResponse, clustersResponse] = await Promise.all([
         fetch(`/api/analyses/${analysisId}`, {
           headers: {
-            "x-access-token": accessToken.trim()
+            "x-access-token": token
           }
         }),
         fetch(`/api/analyses/${analysisId}/clusters`, {
           headers: {
-            "x-access-token": accessToken.trim()
+            "x-access-token": token
           }
         })
       ]);
@@ -146,6 +213,7 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
 
       setAnalysis(analysisBody);
       setClusters(Array.isArray(clustersBody) ? clustersBody : []);
+      await loadEventsWithToken(token);
     } catch {
       setErrorMessage("Unable to load analysis data.");
     } finally {
@@ -347,6 +415,100 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
               )}
             </Card>
           )}
+
+          <Card className="p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <h3 className="text-sm font-semibold">Search Events</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Filter normalized events by message text, level, and service.
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-lg border border-primary bg-primary/20 px-4 py-2 text-sm font-medium text-foreground disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground"
+                disabled={isEventsLoading}
+                onClick={() => loadEventsWithToken(accessToken.trim())}
+              >
+                {isEventsLoading ? "Searching..." : "Apply filters"}
+              </button>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <label className="text-sm text-muted-foreground">
+                Search text
+                <input
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  value={eventQuery}
+                  onChange={(event) => setEventQuery(event.target.value)}
+                  placeholder="timeout, exception, trace id..."
+                />
+              </label>
+              <label className="text-sm text-muted-foreground">
+                Level
+                <select
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  value={eventLevel}
+                  onChange={(event) => setEventLevel(event.target.value)}
+                >
+                  <option value="">All levels</option>
+                  <option value="debug">debug</option>
+                  <option value="info">info</option>
+                  <option value="warn">warn</option>
+                  <option value="error">error</option>
+                  <option value="fatal">fatal</option>
+                  <option value="unknown">unknown</option>
+                </select>
+              </label>
+              <label className="text-sm text-muted-foreground">
+                Service
+                <input
+                  className="mt-1 w-full rounded-lg border border-input bg-background px-3 py-2 text-sm text-foreground outline-none focus:border-primary"
+                  value={eventService}
+                  onChange={(event) => setEventService(event.target.value)}
+                  placeholder="api, worker, nginx..."
+                />
+              </label>
+            </div>
+
+            {eventsErrorMessage && (
+              <p className="mt-3 rounded-lg border border-destructive bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                Error: {eventsErrorMessage}
+              </p>
+            )}
+
+            {isEventsLoading ? (
+              <p className="mt-3 text-sm text-muted-foreground">Loading filtered events...</p>
+            ) : events.length === 0 ? (
+              <p className="mt-3 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                Empty state: no events match the current filters.
+              </p>
+            ) : (
+              <div className="mt-3 overflow-x-auto rounded-lg border border-border">
+                <table className="min-w-full text-sm">
+                  <thead className="bg-muted/50 text-left text-muted-foreground">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Line</th>
+                      <th className="px-3 py-2 font-medium">Time</th>
+                      <th className="px-3 py-2 font-medium">Level</th>
+                      <th className="px-3 py-2 font-medium">Service</th>
+                      <th className="px-3 py-2 font-medium">Message</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {events.map((event) => (
+                      <tr key={event.id} className="bg-background align-top">
+                        <td className="px-3 py-2 text-muted-foreground">{event.line_no}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{formatClusterTime(event.timestamp)}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{event.level}</td>
+                        <td className="px-3 py-2 text-muted-foreground">{event.service || "n/a"}</td>
+                        <td className="px-3 py-2 text-foreground">{maskSensitiveText(event.message || "")}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </Card>
         </>
       )}
     </div>

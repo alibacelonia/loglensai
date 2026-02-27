@@ -1197,3 +1197,51 @@
     - `GET /api/clusters/<id>` via frontend proxy (validated detail payload)
     - `GET /clusters/<id>` (page returns `200`)
 - Next checkbox: `Search/filter events`
+
+## 2026-02-26 20:20:04 PST
+- Checkbox completed: `Search/filter events`
+- Implemented:
+  - Added owner-scoped backend events endpoint: `GET /api/analyses/<analysis_id>/events`.
+  - Added defensive query validation and guardrails on events endpoint:
+    - `q` max length (`300`)
+    - `service` max length (`128`)
+    - `level` allowlist (`debug|info|warn|error|fatal|unknown`)
+    - `line_from`/`line_to` integer + range validation
+    - `limit` bounded (`1..200`, default `100`)
+  - Added frontend proxy endpoint `GET /api/analyses/[analysisId]/events` with token enforcement, analysis ID validation, timeout, and query passthrough.
+  - Added analysis page event search/filter UI with controls for:
+    - search text (`q`)
+    - level
+    - service
+  - Added filtered event results table (`text-sm`) and required states:
+    - loading
+    - empty
+    - error
+  - Added client-side sensitive-pattern masking in event message rendering before display.
+- Security/data-integrity decisions:
+  - Excluded raw log payload fields from event list serializer; only normalized fields are returned.
+  - Enforced bounded event query limits to reduce accidental heavy reads and keep UI/API stable.
+  - Preserved owner-based access control by resolving analysis through `source__owner=request.user`.
+- Files modified:
+  - `backend/analyses/serializers.py`
+  - `backend/analyses/views.py`
+  - `backend/loglens/urls.py`
+  - `frontend/src/app/api/analyses/[analysisId]/events/route.ts`
+  - `frontend/src/components/analyses/analysis-results-tabs.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color frontend --since=3m`
+  - `docker compose logs --no-color backend --since=3m`
+  - `docker compose logs --no-color worker --since=3m`
+  - End-to-end verification flow with `curl` + Python assertions:
+    - `POST /api/auth/register`
+    - `POST /api/sources`
+    - `POST /api/sources/<id>/analyze`
+    - `GET /api/analyses/<id>/events?level=error&service=api&q=timeout&limit=50` via frontend proxy (validated filtered results)
+    - `GET /api/analyses/<id>/events?level=critical` via frontend proxy (validated `400` input validation)
+    - `GET /analyses/<id>` (page returns `200`)
+- Next checkbox: `JSON export endpoint`

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from analyses.models import AIInsight, AnalysisRun, LogCluster
+from analyses.models import AIInsight, AnalysisRun, LogCluster, LogEvent
 
 
 class AIInsightSummarySerializer(serializers.ModelSerializer):
@@ -51,5 +51,22 @@ class LogClusterSerializer(serializers.ModelSerializer):
             "last_seen",
             "sample_events",
             "affected_services",
+        ]
+        read_only_fields = fields
+
+
+class LogEventSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = LogEvent
+        fields = [
+            "id",
+            "analysis_run_id",
+            "line_no",
+            "timestamp",
+            "level",
+            "service",
+            "message",
+            "trace_id",
+            "request_id",
         ]
         read_only_fields = fields

@@ -4,6 +4,7 @@ from django.urls import include, path
 from authn.views import MeView
 from analyses.views import (
     AnalysisClusterListView,
+    AnalysisEventListView,
     AnalysisRunStatusView,
     ClusterDetailView,
     SourceAnalysisListCreateView,
@@ -33,6 +34,11 @@ urlpatterns = [
         "api/analyses/<int:analysis_id>/clusters",
         AnalysisClusterListView.as_view(),
         name="analysis-cluster-list",
+    ),
+    path(
+        "api/analyses/<int:analysis_id>/events",
+        AnalysisEventListView.as_view(),
+        name="analysis-event-list",
     ),
     path("api/clusters/<int:cluster_id>", ClusterDetailView.as_view(), name="cluster-detail"),
 ]
