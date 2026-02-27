@@ -177,6 +177,13 @@ REDACTION_MASK_PHONE_NUMBERS = _env_bool("REDACTION_MASK_PHONE_NUMBERS", default
 REDACTION_MASK_IP_ADDRESSES = _env_bool("REDACTION_MASK_IP_ADDRESSES", default=True)
 REDACTION_MASK_JWTS = _env_bool("REDACTION_MASK_JWTS", default=True)
 REDACTION_MASK_API_KEYS = _env_bool("REDACTION_MASK_API_KEYS", default=True)
+LLM_ENABLED = _env_bool("LLM_ENABLED", default=True)
+LLM_PROVIDER = os.getenv("LLM_PROVIDER", "mock").strip().lower()
+LLM_MODEL = os.getenv("LLM_MODEL", "gpt-4o-mini").strip()
+LLM_API_URL = os.getenv("LLM_API_URL", "https://api.openai.com/v1/chat/completions").strip()
+LLM_API_KEY = os.getenv("LLM_API_KEY", "").strip()
+LLM_REQUEST_TIMEOUT_SECONDS = int(os.getenv("LLM_REQUEST_TIMEOUT_SECONDS", "20"))
+LLM_MAX_CLUSTER_CONTEXT = int(os.getenv("LLM_MAX_CLUSTER_CONTEXT", "20"))
 
 CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
 CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/1")

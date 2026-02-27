@@ -787,3 +787,39 @@
   - `docker compose logs --no-color worker --tail=120`
   - `docker compose exec -T backend python manage.py shell -c "...AIInsight create/read assertion..."` (`aiinsight_ok`)
 - Next checkbox: `Prompt + call to LLM for:`
+
+## 2026-02-27 11:40:29 PST
+- Checkbox completed: `Prompt + call to LLM for:`
+- Implemented:
+  - Added AI generation service (`backend/analyses/ai.py`) with:
+    - structured prompt builder using analysis stats + top clusters
+    - JSON-only output contract parsing and sanitization
+    - OpenAI-compatible HTTP client path with request timeout
+    - deterministic `mock` provider for safe/dev execution
+  - Integrated AI generation into Celery `analyze_source` flow.
+  - Persisted generated AI outputs into `AIInsight` via `update_or_create`.
+  - Added `ai_status` to analysis stats (`completed`/`failed`/`skipped`) so failures are explicit without failing the full analysis run.
+  - Added LLM configuration controls in settings/env/compose:
+    - provider/model/url/api key
+    - request timeout
+    - max cluster context size
+- Security/data-integrity decisions:
+  - Prompt inputs are sourced from already-redacted normalized data.
+  - AI-call failures are isolated and logged; core analysis still completes.
+  - Timeout and bounded cluster context are enforced for reliability.
+- Files modified:
+  - `backend/analyses/ai.py`
+  - `backend/analyses/tasks.py`
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `docker-compose.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=90`
+  - `docker compose logs --no-color worker --tail=140`
+  - end-to-end AI generation verification with `curl` + analysis polling + DB assertions (`llm_call_ok`)
+- Next checkbox: `Executive summary`

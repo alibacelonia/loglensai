@@ -12,13 +12,14 @@ from analyses.line_reader import (
     SourceLineReaderError,
     iter_source_lines,
 )
+from analyses.ai import generate_ai_insight
 from analyses.parsers import (
     parse_json_log_line,
     parse_nginx_log_line,
     parse_timestamp_level_text_line,
 )
 from analyses.clustering import merge_clusters_tfidf
-from analyses.models import AnalysisRun, LogCluster, LogEvent
+from analyses.models import AIInsight, AnalysisRun, LogCluster, LogEvent
 from analyses.normalization import normalize_event_fields
 
 logger = logging.getLogger(__name__)
@@ -246,12 +247,28 @@ def analyze_source(self, analysis_id: int):  # noqa: ARG001
         else:
             computed_stats["clusters_tfidf"] = baseline_clusters
 
+        ai_insight_payload = None
+        ai_status = "skipped"
+        if settings.LLM_ENABLED:
+            try:
+                ai_insight_payload = generate_ai_insight(computed_stats, baseline_clusters)
+                ai_status = "completed"
+            except Exception:
+                logger.exception("ai insight generation failed analysis_id=%s", analysis_id)
+                ai_status = "failed"
+        computed_stats["ai_status"] = ai_status
+
         with transaction.atomic():
             analysis = AnalysisRun.objects.select_for_update().get(id=analysis_id)
             analysis.status = AnalysisRun.Status.COMPLETED
             analysis.stats = computed_stats
             analysis.finished_at = timezone.now()
             analysis.save(update_fields=["status", "stats", "finished_at", "updated_at"])
+            if ai_insight_payload is not None:
+                AIInsight.objects.update_or_create(
+                    analysis_run=analysis,
+                    defaults=ai_insight_payload,
+                )
 
         logger.info("analysis task completed analysis_id=%s", analysis_id)
         return {"analysis_id": analysis_id, "status": AnalysisRun.Status.COMPLETED}

@@ -63,6 +63,13 @@ services:
       REDACTION_MASK_IP_ADDRESSES: ${REDACTION_MASK_IP_ADDRESSES:-true}
       REDACTION_MASK_JWTS: ${REDACTION_MASK_JWTS:-true}
       REDACTION_MASK_API_KEYS: ${REDACTION_MASK_API_KEYS:-true}
+      LLM_ENABLED: ${LLM_ENABLED:-true}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_API_URL: ${LLM_API_URL:-https://api.openai.com/v1/chat/completions}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_REQUEST_TIMEOUT_SECONDS: ${LLM_REQUEST_TIMEOUT_SECONDS:-20}
+      LLM_MAX_CLUSTER_CONTEXT: ${LLM_MAX_CLUSTER_CONTEXT:-20}
     volumes:
       - ./backend:/app
       - ./backend/media:/app/media
@@ -122,6 +129,13 @@ services:
       REDACTION_MASK_IP_ADDRESSES: ${REDACTION_MASK_IP_ADDRESSES:-true}
       REDACTION_MASK_JWTS: ${REDACTION_MASK_JWTS:-true}
       REDACTION_MASK_API_KEYS: ${REDACTION_MASK_API_KEYS:-true}
+      LLM_ENABLED: ${LLM_ENABLED:-true}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_API_URL: ${LLM_API_URL:-https://api.openai.com/v1/chat/completions}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_REQUEST_TIMEOUT_SECONDS: ${LLM_REQUEST_TIMEOUT_SECONDS:-20}
+      LLM_MAX_CLUSTER_CONTEXT: ${LLM_MAX_CLUSTER_CONTEXT:-20}
     volumes:
       - ./backend:/app
       - ./backend/media:/app/media
