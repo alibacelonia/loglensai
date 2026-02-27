@@ -556,3 +556,28 @@
   - `docker compose logs --no-color backend --tail=100`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `Stats computation (counts by level/service)`
+
+## 2026-02-27 11:14:27 PST
+- Checkbox completed: `Stats computation (counts by level/service)`
+- Implemented:
+  - Added explicit `service_counts` computation in analysis stats.
+  - Continued level aggregation (`level_counts`) and synchronized sorted `services` list from service counts.
+  - Stats now provide per-run counts by both severity and service, directly in `AnalysisRun.stats`.
+- Security/data-integrity decisions:
+  - Service counting uses normalized event fields produced in the Celery pipeline, avoiding duplicate counting paths.
+- Files modified:
+  - `backend/analyses/tasks.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - Stats verification flow with `curl` + polling:
+    - upload mixed multi-parser log sample
+    - enqueue analysis
+    - poll `GET /api/analyses/<id>`
+    - verified `service_counts`, `level_counts`, and `services` output
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `Fingerprint function (exception type + normalized message)`

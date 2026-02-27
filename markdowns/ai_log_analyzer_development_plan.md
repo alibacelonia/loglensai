@@ -25,7 +25,7 @@ Check boxes as you implement.
   - [x] timestamp+level text logs
   - [x] nginx error/access (basic)
 - [x] Normalize → LogEvent rows
-- [ ] Stats computation (counts by level/service)
+- [x] Stats computation (counts by level/service)
 
 ## 5) Clustering
 - [ ] Fingerprint function (exception type + normalized message)

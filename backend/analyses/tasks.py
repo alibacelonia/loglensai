@@ -56,9 +56,9 @@ def _process_source_lines(source, analysis_id: int) -> dict:
         "unparsed_lines": 0,
         "error_count": 0,
         "level_counts": {},
+        "service_counts": {},
         "services": [],
     }
-    service_names = set()
     event_batch = []
 
     LogEvent.objects.filter(analysis_run_id=analysis_id).delete()
@@ -95,7 +95,8 @@ def _process_source_lines(source, analysis_id: int) -> dict:
                 stats["error_count"] += 1
 
             if normalized["service"]:
-                service_names.add(normalized["service"])
+                service = normalized["service"]
+                stats["service_counts"][service] = stats["service_counts"].get(service, 0) + 1
 
             event_batch.append(
                 LogEvent(
@@ -124,7 +125,7 @@ def _process_source_lines(source, analysis_id: int) -> dict:
             LogEvent.objects.bulk_create(event_batch, batch_size=500)
         stats["reader_error"] = "unreadable_source"
 
-    stats["services"] = sorted(service_names)
+    stats["services"] = sorted(stats["service_counts"].keys())
     return stats
 
 
