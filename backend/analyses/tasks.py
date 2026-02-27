@@ -11,7 +11,11 @@ from analyses.line_reader import (
     SourceLineReaderError,
     iter_source_lines,
 )
-from analyses.parsers import parse_json_log_line, parse_timestamp_level_text_line
+from analyses.parsers import (
+    parse_json_log_line,
+    parse_nginx_log_line,
+    parse_timestamp_level_text_line,
+)
 from analyses.models import AnalysisRun
 
 logger = logging.getLogger(__name__)
@@ -23,6 +27,7 @@ def _count_lines_for_source(source) -> dict:
         "truncated": False,
         "json_lines": 0,
         "text_lines": 0,
+        "nginx_lines": 0,
         "error_count": 0,
         "level_counts": {},
     }
@@ -46,6 +51,15 @@ def _count_lines_for_source(source) -> dict:
             if parsed_text is not None:
                 stats["text_lines"] += 1
                 level = parsed_text["level"]
+                stats["level_counts"][level] = stats["level_counts"].get(level, 0) + 1
+                if level in {"error", "fatal"}:
+                    stats["error_count"] += 1
+                continue
+
+            parsed_nginx = parse_nginx_log_line(_line)
+            if parsed_nginx is not None:
+                stats["nginx_lines"] += 1
+                level = parsed_nginx["level"]
                 stats["level_counts"][level] = stats["level_counts"].get(level, 0) + 1
                 if level in {"error", "fatal"}:
                     stats["error_count"] += 1

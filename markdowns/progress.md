@@ -478,3 +478,36 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `nginx error/access (basic)`
+
+## 2026-02-27 11:08:13 PST
+- Checkbox completed: `nginx error/access (basic)`
+- Implemented:
+  - Added basic nginx parser support in `analyses/parsers.py` for:
+    - common access log format
+    - common error log format
+  - Access log parsing derives severity from HTTP status code:
+    - `>=500` -> `error`
+    - `>=400` -> `warn`
+    - otherwise -> `info`
+  - Integrated nginx parsing into analysis stats pipeline.
+  - Added `nginx_lines` metric in task stats.
+- Security/data-integrity decisions:
+  - Parser is non-fatal for unmatched lines; unrecognized entries are safely ignored.
+  - Severity is normalized to controlled categories to prevent arbitrary label injection.
+- Files modified:
+  - `backend/analyses/parsers.py`
+  - `backend/analyses/tasks.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - Nginx parser verification flow with `curl` and polling:
+    - upload mixed nginx access/error log sample
+    - enqueue analysis
+    - poll `GET /api/analyses/<id>`
+    - verified stats: `total_lines=3`, `nginx_lines=2`, `error_count=2`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `Normalize → LogEvent rows`

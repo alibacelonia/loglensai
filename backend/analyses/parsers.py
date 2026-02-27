@@ -27,6 +27,18 @@ _BRACKETED_PATTERN = re.compile(
     flags=re.IGNORECASE,
 )
 
+_NGINX_ACCESS_PATTERN = re.compile(
+    r"^(?P<remote_addr>\S+)\s+\S+\s+\S+\s+\[(?P<timestamp>[^\]]+)\]\s+"
+    r'"(?P<method>[A-Z]+)\s+(?P<path>[^"]+?)\s+HTTP/(?P<http_version>[^"]+)"\s+'
+    r"(?P<status>\d{3})\s+(?P<body_bytes_sent>\d+|-)\s+"
+    r'"(?P<referer>[^"]*)"\s+"(?P<user_agent>[^"]*)"'
+)
+
+_NGINX_ERROR_PATTERN = re.compile(
+    r"^(?P<timestamp>\d{4}/\d{2}/\d{2}\s+\d{2}:\d{2}:\d{2})\s+\[(?P<level>\w+)\]\s+(?P<message>.+)$",
+    flags=re.IGNORECASE,
+)
+
 
 def _pick(payload: dict[str, Any], keys: tuple[str, ...]) -> Any:
     for key in keys:
@@ -95,3 +107,43 @@ def parse_timestamp_level_text_line(line: str) -> dict[str, Any] | None:
         "request_id": None,
         "raw": line,
     }
+
+
+def parse_nginx_log_line(line: str) -> dict[str, Any] | None:
+    access_match = _NGINX_ACCESS_PATTERN.match(line)
+    if access_match:
+        status_code = int(access_match.group("status"))
+        if status_code >= 500:
+            level = "error"
+        elif status_code >= 400:
+            level = "warn"
+        else:
+            level = "info"
+
+        method = access_match.group("method")
+        path = access_match.group("path")
+        message = f"{method} {path} -> {status_code}"
+
+        return {
+            "timestamp": access_match.group("timestamp"),
+            "level": level,
+            "service": "nginx",
+            "message": message,
+            "trace_id": None,
+            "request_id": None,
+            "raw": line,
+        }
+
+    error_match = _NGINX_ERROR_PATTERN.match(line)
+    if error_match:
+        return {
+            "timestamp": error_match.group("timestamp"),
+            "level": _normalize_level(error_match.group("level")),
+            "service": "nginx",
+            "message": error_match.group("message"),
+            "trace_id": None,
+            "request_id": None,
+            "raw": line,
+        }
+
+    return None

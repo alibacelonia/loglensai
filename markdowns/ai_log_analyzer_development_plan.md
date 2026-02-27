@@ -23,7 +23,7 @@ Check boxes as you implement.
 - [ ] Parsers:
   - [x] JSON logs
   - [x] timestamp+level text logs
-  - [ ] nginx error/access (basic)
+  - [x] nginx error/access (basic)
 - [ ] Normalize → LogEvent rows
 - [ ] Stats computation (counts by level/service)
 
