@@ -44,7 +44,7 @@ Check boxes as you implement.
 
 ## 7) UI
 - [x] Next.js + shadcn layout (sidebar/topbar)
-- [ ] Apply LogLens theme tokens (globals.css + tailwind.config + dark root class)
+- [x] Apply LogLens theme tokens (globals.css + tailwind.config + dark root class)
 - [ ] Upload/paste page
 - [ ] Analysis results page with tabs:
   - [ ] Summary

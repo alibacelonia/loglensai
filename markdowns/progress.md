@@ -959,3 +959,33 @@
   - `curl -sS http://localhost:3100`
   - `docker compose restart frontend`
 - Next checkbox: `Apply LogLens theme tokens (globals.css + tailwind.config + dark root class)`
+
+## 2026-02-27 11:54:35 PST
+- Checkbox completed: `Apply LogLens theme tokens (globals.css + tailwind.config + dark root class)`
+- Implemented:
+  - Updated `frontend/src/app/globals.css` to match branding token set:
+    - full surface/text/accent/destructive/input/ring/radius variables
+    - status tokens (`success`, `warning`, `info`, `critical`, `violet`)
+    - mirrored `.dark` token block
+  - Updated `frontend/tailwind.config.js` with token mappings for shadcn-compatible color objects and radius derivation from `--radius`.
+  - Retained always-dark root (`<html className="dark">`) in Next layout.
+  - Verified frontend renders with dark class and tokenized sidebar/topbar shell.
+- Security/data-integrity decisions:
+  - Theme update is presentation-only and does not alter data-handling paths.
+  - Dark-only root remains enforced for MVP consistency.
+- Files modified:
+  - `frontend/src/app/globals.css`
+  - `frontend/tailwind.config.js`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=60`
+  - `docker compose logs --no-color worker --tail=80`
+  - `docker compose logs --no-color frontend --tail=120`
+  - `docker compose restart frontend`
+  - `curl -sS http://localhost:3100`
+  - token verification via `rg` in `globals.css` and `tailwind.config.js`
+- Next checkbox: `Upload/paste page`
