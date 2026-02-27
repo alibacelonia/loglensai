@@ -205,6 +205,16 @@ def _persist_log_clusters(analysis_id: int, baseline_clusters: list[dict]) -> No
         LogCluster.objects.bulk_create(clusters_to_create, batch_size=200)
 
 
+def _build_cluster_context(analysis_id: int) -> list[dict]:
+    return list(
+        LogCluster.objects.filter(analysis_run_id=analysis_id)
+        .order_by("-count", "fingerprint")
+        .values("id", "fingerprint", "title", "count", "first_seen", "last_seen")[
+            : settings.LLM_MAX_CLUSTER_CONTEXT
+        ]
+    )
+
+
 @shared_task(
     bind=True,
     soft_time_limit=settings.ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS,
@@ -251,7 +261,8 @@ def analyze_source(self, analysis_id: int):  # noqa: ARG001
         ai_status = "skipped"
         if settings.LLM_ENABLED:
             try:
-                ai_insight_payload = generate_ai_insight(computed_stats, baseline_clusters)
+                cluster_context = _build_cluster_context(analysis.id)
+                ai_insight_payload = generate_ai_insight(computed_stats, cluster_context)
                 ai_status = "completed"
             except Exception:
                 logger.exception("ai insight generation failed analysis_id=%s", analysis_id)

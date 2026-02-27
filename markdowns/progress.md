@@ -881,3 +881,40 @@
   - `docker compose logs --no-color worker --tail=140`
   - end-to-end verification with `curl` + analysis polling + DB assertion (`remediation_ok`)
 - Next checkbox: `Store confidence + evidence references`
+
+## 2026-02-27 11:45:59 PST
+- Checkbox completed: `Store confidence + evidence references`
+- Implemented:
+  - Extended `AIInsight` with:
+    - `overall_confidence` (`FloatField`, nullable)
+    - `evidence_references` (`JSONField`, list)
+  - Updated AI payload sanitization to parse/store:
+    - per-root-cause `confidence`
+    - per-root-cause `evidence_cluster_ids`
+    - top-level `overall_confidence`
+    - top-level `evidence_references`
+  - Updated prompt schema to request confidence and evidence cluster IDs.
+  - Added cluster-context builder in tasks using persisted `LogCluster` IDs.
+  - Persisted confidence/evidence data through `AIInsight.update_or_create`.
+  - Added migration `analyses.0005_aiinsight_evidence_references_and_more`.
+- Security/data-integrity decisions:
+  - Evidence references are constrained to integer cluster IDs from owner-scoped analysis context.
+  - Confidence values are clamped to `[0.0, 1.0]` before persistence.
+  - If top-level confidence/evidence are omitted, safe derivation from root causes is applied.
+- Files modified:
+  - `backend/analyses/models.py`
+  - `backend/analyses/admin.py`
+  - `backend/analyses/ai.py`
+  - `backend/analyses/tasks.py`
+  - `backend/analyses/migrations/0005_aiinsight_evidence_references_and_more.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose exec -T backend python manage.py makemigrations analyses`
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=90`
+  - `docker compose logs --no-color worker --tail=160`
+  - end-to-end verification with `curl` + analysis polling + DB assertion (`confidence_evidence_ok`)
+- Next checkbox: `Next.js + shadcn layout (sidebar/topbar)`

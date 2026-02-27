@@ -40,7 +40,7 @@ Check boxes as you implement.
   - [x] Executive summary
   - [x] Root cause hypotheses
   - [x] Remediation steps
-- [ ] Store confidence + evidence references
+- [x] Store confidence + evidence references
 
 ## 7) UI
 - [ ] Next.js + shadcn layout (sidebar/topbar)

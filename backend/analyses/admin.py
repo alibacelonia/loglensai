@@ -26,5 +26,5 @@ class LogClusterAdmin(admin.ModelAdmin):
 
 @admin.register(AIInsight)
 class AIInsightAdmin(admin.ModelAdmin):
-    list_display = ("id", "analysis_run", "updated_at")
+    list_display = ("id", "analysis_run", "overall_confidence", "updated_at")
     search_fields = ("analysis_run__id", "executive_summary", "remediation")

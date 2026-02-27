@@ -123,6 +123,8 @@ class AIInsight(models.Model):
     )
     executive_summary = models.TextField(blank=True, default="")
     root_causes = models.JSONField(default=list, blank=True)
+    overall_confidence = models.FloatField(null=True, blank=True)
+    evidence_references = models.JSONField(default=list, blank=True)
     remediation = models.TextField(blank=True, default="")
     runbook = models.TextField(blank=True, default="")
     created_at = models.DateTimeField(auto_now_add=True)
