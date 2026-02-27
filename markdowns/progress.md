@@ -448,3 +448,33 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `timestamp+level text logs`
+
+## 2026-02-27 11:06:35 PST
+- Checkbox completed: `timestamp+level text logs`
+- Implemented:
+  - Added timestamp+level text parser in `analyses/parsers.py` for common log formats, including:
+    - `YYYY-MM-DDTHH:MM:SSZ LEVEL ...`
+    - `[timestamp] [LEVEL] ...`
+  - Added normalized extraction for parsed text lines (`timestamp`, `level`, `service`, `message`).
+  - Integrated text parser into analysis stats pipeline after JSON parse attempt.
+  - Extended analysis stats with `text_lines` count while preserving normalized `level_counts` and `error_count`.
+- Security/data-integrity decisions:
+  - Parser uses strict regex matching and falls back safely for unmatched lines to avoid malformed-line crashes.
+  - Level normalization restricts values to known severity categories.
+- Files modified:
+  - `backend/analyses/parsers.py`
+  - `backend/analyses/tasks.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - Text parser verification flow with `curl` and polling:
+    - upload mixed text log file
+    - enqueue analysis
+    - poll `GET /api/analyses/<id>`
+    - verified stats: `total_lines=3`, `text_lines=2`, `error_count=1`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `nginx error/access (basic)`

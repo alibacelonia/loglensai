@@ -1,4 +1,5 @@
 import json
+import re
 from typing import Any
 
 
@@ -13,6 +14,18 @@ _LEVEL_MAP = {
     "fatal": "fatal",
     "critical": "fatal",
 }
+
+_TIMESTAMP_LEVEL_PATTERN = re.compile(
+    r"^(?P<timestamp>\d{4}-\d{2}-\d{2}[T\s]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?(?:Z|[+-]\d{2}:?\d{2})?)\s+"
+    r"(?P<level>DEBUG|INFO|WARN|WARNING|ERROR|ERR|FATAL|CRITICAL)\s+"
+    r"(?P<rest>.+)$",
+    flags=re.IGNORECASE,
+)
+
+_BRACKETED_PATTERN = re.compile(
+    r"^\[(?P<timestamp>[^\]]+)\]\s+\[(?P<level>[A-Z]+)\]\s+(?P<rest>.+)$",
+    flags=re.IGNORECASE,
+)
 
 
 def _pick(payload: dict[str, Any], keys: tuple[str, ...]) -> Any:
@@ -53,4 +66,32 @@ def parse_json_log_line(line: str) -> dict[str, Any] | None:
         "trace_id": str(trace_id) if trace_id is not None else None,
         "request_id": str(request_id) if request_id is not None else None,
         "raw": parsed,
+    }
+
+
+def parse_timestamp_level_text_line(line: str) -> dict[str, Any] | None:
+    match = _TIMESTAMP_LEVEL_PATTERN.match(line) or _BRACKETED_PATTERN.match(line)
+    if not match:
+        return None
+
+    timestamp = match.group("timestamp")
+    level = _normalize_level(match.group("level"))
+    rest = match.group("rest").strip()
+
+    service = None
+    message = rest
+    if " - " in rest:
+        service_candidate, message_candidate = rest.split(" - ", 1)
+        if service_candidate and " " not in service_candidate:
+            service = service_candidate
+            message = message_candidate
+
+    return {
+        "timestamp": timestamp,
+        "level": level,
+        "service": service,
+        "message": message,
+        "trace_id": None,
+        "request_id": None,
+        "raw": line,
     }

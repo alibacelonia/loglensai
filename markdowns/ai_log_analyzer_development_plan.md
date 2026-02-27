@@ -22,7 +22,7 @@ Check boxes as you implement.
 - [x] Robust line reader (supports gz)
 - [ ] Parsers:
   - [x] JSON logs
-  - [ ] timestamp+level text logs
+  - [x] timestamp+level text logs
   - [ ] nginx error/access (basic)
 - [ ] Normalize → LogEvent rows
 - [ ] Stats computation (counts by level/service)
