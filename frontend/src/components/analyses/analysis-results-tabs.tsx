@@ -24,6 +24,10 @@ type ClusterItem = {
   title: string;
   count: number;
   fingerprint: string;
+  first_seen: string | null;
+  last_seen: string | null;
+  sample_events: number[];
+  affected_services: string[];
 };
 
 type TabKey = "summary" | "clusters" | "timeline";
@@ -40,6 +44,17 @@ function readStatsNumber(stats: Record<string, unknown>, key: string) {
     return value;
   }
   return 0;
+}
+
+function formatClusterTime(value: string | null) {
+  if (!value) {
+    return "n/a";
+  }
+  const timestamp = new Date(value);
+  if (Number.isNaN(timestamp.getTime())) {
+    return "n/a";
+  }
+  return timestamp.toLocaleString();
 }
 
 export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
@@ -199,14 +214,47 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
                 </p>
               ) : (
                 <div className="mt-3 space-y-2">
-                  {clusters.slice(0, 8).map((cluster) => (
-                    <div
-                      key={cluster.id}
-                      className="rounded-lg border border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground"
-                    >
-                      #{cluster.id} · {cluster.count} events · {cluster.title}
-                    </div>
-                  ))}
+                  <p className="text-sm text-muted-foreground">
+                    Top error clusters ranked by frequency.
+                  </p>
+                  <div className="overflow-x-auto rounded-lg border border-border">
+                    <table className="min-w-full text-sm">
+                      <thead className="bg-muted/50 text-left text-muted-foreground">
+                        <tr>
+                          <th className="px-3 py-2 font-medium">Cluster</th>
+                          <th className="px-3 py-2 font-medium">Events</th>
+                          <th className="px-3 py-2 font-medium">Fingerprint</th>
+                          <th className="px-3 py-2 font-medium">Window</th>
+                          <th className="px-3 py-2 font-medium">Services</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-border">
+                        {clusters.slice(0, 25).map((cluster) => (
+                          <tr key={cluster.id} className="bg-background text-foreground">
+                            <td className="px-3 py-2 align-top">
+                              <p className="font-medium">#{cluster.id}</p>
+                              <p className="text-muted-foreground">{cluster.title}</p>
+                            </td>
+                            <td className="px-3 py-2 align-top text-muted-foreground">{cluster.count}</td>
+                            <td className="px-3 py-2 align-top text-muted-foreground">
+                              <code className="rounded bg-muted px-1 py-0.5 text-xs">{cluster.fingerprint}</code>
+                            </td>
+                            <td className="px-3 py-2 align-top text-muted-foreground">
+                              {formatClusterTime(cluster.first_seen)} to {formatClusterTime(cluster.last_seen)}
+                            </td>
+                            <td className="px-3 py-2 align-top text-muted-foreground">
+                              {cluster.affected_services?.length
+                                ? cluster.affected_services.join(", ")
+                                : "unassigned"}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p className="text-xs text-muted-foreground">
+                    Showing {Math.min(clusters.length, 25)} of {clusters.length} clusters.
+                  </p>
                 </div>
               )}
             </Card>

@@ -1106,3 +1106,31 @@
     - `GET /api/analyses/<id>` (backend poll)
     - `GET http://localhost:3100/api/analyses/<id>` (frontend proxy; validated `ai_insight.executive_summary`)
 - Next checkbox: `Clusters`
+
+## 2026-02-26 20:11:51 PST
+- Checkbox completed: `Clusters`
+- Implemented:
+  - Expanded the analysis results `Clusters` tab into a readable `text-sm` table view with columns for cluster id/title, event count, fingerprint, time window, and affected services.
+  - Added cluster timestamp formatting with defensive fallback (`n/a`) for missing/invalid values.
+  - Added top-N rendering note (`25` max rows) to keep the page performant and readable during larger analyses.
+- Security/data-integrity decisions:
+  - Kept Clusters tab read-only and sourced exclusively from owner-scoped backend endpoints via frontend proxy.
+  - Display remains redacted-safe because it uses persisted normalized/guarded cluster fields only.
+- Files modified:
+  - `frontend/src/components/analyses/analysis-results-tabs.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --since=3m`
+  - `docker compose logs --no-color worker --since=3m`
+  - `docker compose logs --no-color frontend --since=3m`
+  - End-to-end verification flow with `curl` + Python assertions:
+    - `POST /api/auth/register`
+    - `POST /api/sources`
+    - `POST /api/sources/<id>/analyze`
+    - `GET /api/analyses/<id>` (backend poll)
+    - `GET http://localhost:3100/api/analyses/<id>/clusters` (frontend proxy; validated cluster fields)
+- Next checkbox: `Timeline`
