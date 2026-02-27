@@ -2,7 +2,7 @@
 Check boxes as you implement.
 
 ## 1) Foundations
-- [ ] Create repo structure: `backend/`, `frontend/`, `infra/`, `markdowns/`
+- [x] Create repo structure: `backend/`, `frontend/`, `infra/`, `markdowns/`
 - [ ] Docker Compose: postgres, redis, backend, worker, frontend
 - [ ] Django + DRF setup, env loading, health endpoint
 - [ ] Auth (JWT or session)
