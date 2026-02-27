@@ -5,7 +5,7 @@ LIGHTSAIL_ENV ?= infra/lightsail/.env
 LIGHTSAIL_FLAGS ?=
 SERVICE ?= backend
 
-.PHONY: lightsail-env lightsail-deploy lightsail-cleanup lightsail-cleanup-volumes lightsail-status lightsail-logs
+.PHONY: lightsail-env lightsail-deploy lightsail-cleanup lightsail-cleanup-volumes lightsail-status lightsail-logs docker-clean
 
 lightsail-env:
 	@if [ -f "$(LIGHTSAIL_ENV)" ]; then \
@@ -30,3 +30,11 @@ lightsail-status: lightsail-env
 
 lightsail-logs: lightsail-env
 	@SERVICE="$(SERVICE)" "$(LIGHTSAIL_SCRIPT)" logs --env-file "$(LIGHTSAIL_ENV)"
+
+docker-clean:
+	@echo "Pruning containers, images, networks, and build cache (volumes are kept)..."
+	@docker container prune -f
+	@docker image prune -af
+	@docker network prune -f
+	@docker builder prune -af
+	@docker system df
