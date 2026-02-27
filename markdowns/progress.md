@@ -236,3 +236,35 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=20`
 - Next checkbox: `List/detail/delete sources with access control`
+
+## 2026-02-27 10:53:08 PST
+- Checkbox completed: `List/detail/delete sources with access control`
+- Implemented:
+  - Added source list endpoint: `GET /api/sources` (current user's sources only).
+  - Added source detail endpoint: `GET /api/sources/<id>` (owner-scoped).
+  - Added source delete endpoint: `DELETE /api/sources/<id>` (owner-scoped).
+  - Refactored source routing to explicit URL patterns in project `urls.py` to preserve slashless API style.
+  - Added file cleanup during source deletion through storage abstraction to prevent orphaned local media files.
+- Security/data-integrity decisions:
+  - Access control is enforced through owner-filtered querysets (cross-user access returns `404`).
+  - Source deletion removes associated uploaded file when using local storage.
+- Files modified:
+  - `backend/loglens/urls.py`
+  - `backend/sources/views.py`
+  - `backend/sources/storage.py`
+  - `backend/sources/urls.py` (removed)
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - End-to-end source access control checks with `curl` and assertions:
+    - create uploads for two different users
+    - list for user A contains only user A sources
+    - user A detail on user B source -> `404`
+    - user A delete own source -> `204`
+    - verified local media file removed after delete
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=20`
+- Next checkbox: `AnalysisRun model + endpoints`
