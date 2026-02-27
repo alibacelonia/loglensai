@@ -54,6 +54,7 @@ Services:
 - MVP UI runs in dark mode by design.
 - Frontend uses same-origin proxy routes for backend access.
 - Worker tasks are queued on DB commit for retry-safe orchestration.
+- Topbar notification bell and global search are intentionally deferred to v2; MVP uses a compact topbar status chip (environment + queue health) to keep operational signal visible without partial UX.
 
 ## Demo Walkthrough
 - 2-3 minute script: [`markdowns/demo_script.md`](markdowns/demo_script.md)

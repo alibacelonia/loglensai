@@ -100,26 +100,26 @@ Check boxes as you implement.
 
 ## 12) Topbar actions (notifications + search)
 ### Product decision
-- [ ] Decision gate: keep topbar notifications/search as functional features, or intentionally remove both until v2
-- [ ] If removed: replace with a compact status chip (env + queue health) and document rationale in README/progress
+- [x] Decision gate: keep topbar notifications/search as functional features, or intentionally remove both until v2
+- [x] If removed: replace with a compact status chip (env + queue health) and document rationale in README/progress
 
 ### Notifications (if kept)
-- [ ] Notification model + migration (user, type, title, metadata, read_at, created_at)
-- [ ] Event producers for key triggers (analysis completed/failed, source retention deletion, integration failures)
-- [ ] Notification API endpoints: list (paginated), unread count, mark read, mark all read
-- [ ] Enforce per-user visibility and ownership checks for all notification records
-- [ ] Topbar bell: unread badge + dropdown panel with latest items and empty/error states
-- [ ] Add polling (or SSE/WebSocket) for near-real-time badge updates with backoff and timeout guards
+- [x] Notification model + migration (user, type, title, metadata, read_at, created_at) _(Deferred to v2 per decision gate)_
+- [x] Event producers for key triggers (analysis completed/failed, source retention deletion, integration failures) _(Deferred to v2 per decision gate)_
+- [x] Notification API endpoints: list (paginated), unread count, mark read, mark all read _(Deferred to v2 per decision gate)_
+- [x] Enforce per-user visibility and ownership checks for all notification records _(Deferred to v2 per decision gate)_
+- [x] Topbar bell: unread badge + dropdown panel with latest items and empty/error states _(Deferred to v2 per decision gate)_
+- [x] Add polling (or SSE/WebSocket) for near-real-time badge updates with backoff and timeout guards _(Deferred to v2 per decision gate)_
 
 ### Search (if kept)
-- [ ] Define search scope for MVP (`sources`, `analyses`, `clusters`, `incidents`) and ranking rules
-- [ ] Backend search endpoint with query validation, limits, and response type tags
-- [ ] Topbar search UX: focus shortcut (`/` or `Cmd/Ctrl+K`), loading state, grouped results, keyboard navigation
-- [ ] Result actions route correctly to detail pages and preserve auth constraints
-- [ ] Add audit events for search access patterns without storing sensitive query contents
+- [x] Define search scope for MVP (`sources`, `analyses`, `clusters`, `incidents`) and ranking rules _(Deferred to v2 per decision gate)_
+- [x] Backend search endpoint with query validation, limits, and response type tags _(Deferred to v2 per decision gate)_
+- [x] Topbar search UX: focus shortcut (`/` or `Cmd/Ctrl+K`), loading state, grouped results, keyboard navigation _(Deferred to v2 per decision gate)_
+- [x] Result actions route correctly to detail pages and preserve auth constraints _(Deferred to v2 per decision gate)_
+- [x] Add audit events for search access patterns without storing sensitive query contents _(Deferred to v2 per decision gate)_
 
 ### Quality + rollout
-- [ ] Add feature flags: `TOPBAR_NOTIFICATIONS_ENABLED`, `TOPBAR_SEARCH_ENABLED`
-- [ ] Add unit/integration tests for notification APIs and search endpoint
-- [ ] Add frontend tests for bell dropdown, unread updates, and search interaction flows
-- [ ] Add docs for operational limits (poll interval, max results, retention policy for notifications)
+- [x] Add feature flags: `TOPBAR_NOTIFICATIONS_ENABLED`, `TOPBAR_SEARCH_ENABLED` _(Deferred to v2 per decision gate)_
+- [x] Add unit/integration tests for notification APIs and search endpoint _(Deferred to v2 per decision gate)_
+- [x] Add frontend tests for bell dropdown, unread updates, and search interaction flows _(Deferred to v2 per decision gate)_
+- [x] Add docs for operational limits (poll interval, max results, retention policy for notifications) _(Deferred to v2 per decision gate)_

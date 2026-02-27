@@ -1917,3 +1917,31 @@
   - Frontend health became unhealthy after auth middleware redirected `/`; fixed by switching frontend compose healthcheck to `/login` and revalidating healthy status.
 - Next checkbox to execute:
   - `Decision gate: keep topbar notifications/search as functional features, or intentionally remove both until v2`
+
+## 2026-02-27 16:33:54 PST
+- Section completed: `12) Topbar actions (notifications + search)`
+- Completed items:
+  - `Decision gate: keep topbar notifications/search as functional features, or intentionally remove both until v2`
+  - `If removed: replace with a compact status chip (env + queue health) and document rationale in README/progress`
+  - Notification/Search/Quality rollout checkboxes in section 12 marked as deferred to v2 per decision gate.
+- Summary of implementation:
+  - Decided to defer notifications and global search until v2 to avoid partial, high-maintenance UX in MVP.
+  - Removed topbar bell and search input from active MVP UI and replaced them with a compact status chip (environment + queue health).
+  - Added `GET /api/system/status` frontend route that derives queue health from backend `/healthz` and exposes current app environment.
+  - Updated README and development plan to document the decision and explicitly mark downstream section-12 items as deferred to v2.
+- Files modified:
+  - `frontend/src/components/app-shell/topbar.tsx`
+  - `frontend/src/app/api/system/status/route.ts`
+  - `README.md`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `curl -fsS http://localhost:3100/api/system/status`
+  - `docker compose ps`
+  - `curl -fsS http://localhost:8000/healthz`
+- Verification result: `PASS`
+  - Status endpoint returns environment and queue health.
+  - Backend and frontend services healthy under docker compose.
+- Next checkbox to execute:
+  - `N/A (all current checklist sections completed)`
