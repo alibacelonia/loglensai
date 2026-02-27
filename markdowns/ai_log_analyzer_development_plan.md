@@ -15,7 +15,7 @@ Check boxes as you implement.
 
 ## 3) Analysis orchestration (Celery)
 - [x] AnalysisRun model + endpoints
-- [ ] Celery task: `analyze_source(analysis_id)`
+- [x] Celery task: `analyze_source(analysis_id)`
 - [ ] Status polling endpoint
 
 ## 4) Parsing + normalization

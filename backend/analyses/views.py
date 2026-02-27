@@ -1,11 +1,14 @@
 from django.db import transaction
+from django.utils import timezone
 from rest_framework import status
+from rest_framework.exceptions import APIException
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from analyses.models import AnalysisRun
 from analyses.serializers import AnalysisRunSerializer
+from analyses.tasks import analyze_source
 from sources.models import Source
 
 
@@ -35,5 +38,14 @@ class SourceAnalysisListCreateView(APIView):
             return Response(data, status=status.HTTP_200_OK)
 
         analysis = AnalysisRun.objects.create(source=source, status=AnalysisRun.Status.QUEUED)
+        try:
+            analyze_source.delay(analysis.id)
+        except Exception as error:
+            analysis.status = AnalysisRun.Status.FAILED
+            analysis.error_message = "Failed to enqueue analysis task."
+            analysis.finished_at = timezone.now()
+            analysis.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
+            raise APIException("Failed to enqueue analysis task.") from error
+
         data = AnalysisRunSerializer(analysis).data
         return Response(data, status=status.HTTP_202_ACCEPTED)

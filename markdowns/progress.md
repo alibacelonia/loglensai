@@ -311,3 +311,43 @@
   - `docker compose logs --no-color backend --tail=100`
   - `docker compose logs --no-color worker --tail=20`
 - Next checkbox: `Celery task: analyze_source(analysis_id)`
+
+## 2026-02-27 10:59:33 PST
+- Checkbox completed: `Celery task: analyze_source(analysis_id)`
+- Implemented:
+  - Added Celery integration for Django (`loglens/celery.py`, Celery app export in `loglens/__init__.py`).
+  - Added `analyses.tasks.analyze_source(analysis_id)` with:
+    - status transition `queued -> running -> completed|failed`
+    - DB transactions + row locking for safe updates
+    - idempotent behavior (completed/running runs are not reprocessed)
+    - task-level soft/hard time limits
+    - lightweight line-count stats computation for source input
+  - Updated analyze endpoint to enqueue Celery jobs via `analyze_source.delay(...)` and mark run failed if enqueue fails.
+  - Switched Compose worker service from stub loop to real Celery worker process.
+  - Added environment settings for Celery broker/result backend and analysis task limits.
+- Security/data-integrity decisions:
+  - Failure path stores sanitized error text (`Analysis execution failed.`) instead of raw exception details.
+  - Task updates are guarded with transactional row locks to prevent inconsistent concurrent status writes.
+- Files modified:
+  - `backend/requirements.txt`
+  - `backend/loglens/__init__.py`
+  - `backend/loglens/celery.py`
+  - `backend/loglens/settings.py`
+  - `backend/analyses/views.py`
+  - `backend/analyses/tasks.py`
+  - `backend/.env.example`
+  - `docker-compose.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - End-to-end async execution verification:
+    - `POST /api/sources/<id>/analyze` -> `202`
+    - worker receives and executes `analyses.tasks.analyze_source`
+    - `GET /api/sources/<id>/analyses` shows run status `completed`
+    - validated computed stats (`total_lines=2` for sample upload)
+  - `docker compose logs --no-color worker --tail=120`
+  - `docker compose logs --no-color backend --tail=80`
+- Next checkbox: `Status polling endpoint`

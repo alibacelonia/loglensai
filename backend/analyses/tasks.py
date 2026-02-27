@@ -1,0 +1,91 @@
+import logging
+
+from celery import shared_task
+from django.conf import settings
+from django.core.files.storage import default_storage
+from django.db import transaction
+from django.utils import timezone
+
+from analyses.models import AnalysisRun
+from sources.models import Source
+
+logger = logging.getLogger(__name__)
+
+
+def _count_lines_for_source(source: Source) -> dict:
+    max_lines = settings.ANALYSIS_TASK_MAX_LINES
+
+    if source.type == Source.SourceType.PASTE:
+        text = source.content_text or ""
+        if not text:
+            return {"total_lines": 0, "truncated": False}
+        line_count = text.count("\n") + (0 if text.endswith("\n") else 1)
+        return {"total_lines": min(line_count, max_lines), "truncated": line_count > max_lines}
+
+    if source.type == Source.SourceType.UPLOAD and source.file_object_key:
+        if not default_storage.exists(source.file_object_key):
+            return {"total_lines": 0, "truncated": False, "missing_file": True}
+
+        line_count = 0
+        with default_storage.open(source.file_object_key, "rb") as file_obj:
+            for _line in file_obj:
+                line_count += 1
+                if line_count >= max_lines:
+                    return {"total_lines": line_count, "truncated": True}
+        return {"total_lines": line_count, "truncated": False}
+
+    return {"total_lines": 0, "truncated": False}
+
+
+@shared_task(
+    bind=True,
+    soft_time_limit=settings.ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS,
+    time_limit=settings.ANALYSIS_TASK_TIME_LIMIT_SECONDS,
+)
+def analyze_source(self, analysis_id: int):  # noqa: ARG001
+    with transaction.atomic():
+        analysis = (
+            AnalysisRun.objects.select_for_update()
+            .select_related("source")
+            .filter(id=analysis_id)
+            .first()
+        )
+        if analysis is None:
+            logger.warning("analysis task received unknown analysis_id=%s", analysis_id)
+            return {"analysis_id": analysis_id, "status": "missing"}
+
+        if analysis.status == AnalysisRun.Status.COMPLETED:
+            return {"analysis_id": analysis_id, "status": analysis.status}
+
+        if analysis.status == AnalysisRun.Status.RUNNING:
+            return {"analysis_id": analysis_id, "status": analysis.status}
+
+        analysis.status = AnalysisRun.Status.RUNNING
+        analysis.started_at = analysis.started_at or timezone.now()
+        analysis.finished_at = None
+        analysis.error_message = ""
+        analysis.save(update_fields=["status", "started_at", "finished_at", "error_message", "updated_at"])
+
+    try:
+        computed_stats = _count_lines_for_source(analysis.source)
+        computed_stats.setdefault("error_count", 0)
+        computed_stats.setdefault("services", [])
+
+        with transaction.atomic():
+            analysis = AnalysisRun.objects.select_for_update().get(id=analysis_id)
+            analysis.status = AnalysisRun.Status.COMPLETED
+            analysis.stats = computed_stats
+            analysis.finished_at = timezone.now()
+            analysis.save(update_fields=["status", "stats", "finished_at", "updated_at"])
+
+        logger.info("analysis task completed analysis_id=%s", analysis_id)
+        return {"analysis_id": analysis_id, "status": AnalysisRun.Status.COMPLETED}
+    except Exception:
+        logger.exception("analysis task failed analysis_id=%s", analysis_id)
+        with transaction.atomic():
+            analysis = AnalysisRun.objects.select_for_update().get(id=analysis_id)
+            analysis.status = AnalysisRun.Status.FAILED
+            analysis.error_message = "Analysis execution failed."
+            analysis.finished_at = timezone.now()
+            analysis.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
+        raise

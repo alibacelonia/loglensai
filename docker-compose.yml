@@ -49,6 +49,11 @@ services:
       SOURCE_S3_BUCKET: ${SOURCE_S3_BUCKET:-}
       SOURCE_S3_ENDPOINT_URL: ${SOURCE_S3_ENDPOINT_URL:-}
       SOURCE_S3_REGION: ${SOURCE_S3_REGION:-us-east-1}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      ANALYSIS_TASK_MAX_LINES: ${ANALYSIS_TASK_MAX_LINES:-50000}
+      ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS: ${ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS:-120}
+      ANALYSIS_TASK_TIME_LIMIT_SECONDS: ${ANALYSIS_TASK_TIME_LIMIT_SECONDS:-180}
     volumes:
       - ./backend:/app
       - ./backend/media:/app/media
@@ -68,10 +73,23 @@ services:
     restart: unless-stopped
 
   worker:
-    image: alpine:latest
-    working_dir: /app
-    command: ["sh", "/app/scripts/worker_stub.sh"]
+    build:
+      context: ./backend
+    command:
+      [
+        "celery",
+        "-A",
+        "loglens",
+        "worker",
+        "--loglevel=INFO",
+        "--concurrency=1",
+        "--without-gossip",
+        "--without-mingle",
+      ]
     environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-insecure-dev-secret-key-not-for-production-000}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,backend}
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_NAME: ${POSTGRES_DB:-loglens}
@@ -80,9 +98,14 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       WAIT_TIMEOUT_SECONDS: "90"
-      WORKER_HEARTBEAT_SECONDS: "30"
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      ANALYSIS_TASK_MAX_LINES: ${ANALYSIS_TASK_MAX_LINES:-50000}
+      ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS: ${ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS:-120}
+      ANALYSIS_TASK_TIME_LIMIT_SECONDS: ${ANALYSIS_TASK_TIME_LIMIT_SECONDS:-180}
     volumes:
-      - ./backend/scripts:/app/scripts:ro
+      - ./backend:/app
+      - ./backend/media:/app/media
     depends_on:
       postgres:
         condition: service_healthy
