@@ -76,6 +76,7 @@ services:
   worker:
     build:
       context: ./backend
+    entrypoint: ["sh", "/app/scripts/worker_entrypoint.sh"]
     command:
       [
         "celery",

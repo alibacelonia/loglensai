@@ -511,3 +511,48 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=120`
 - Next checkbox: `Normalize → LogEvent rows`
+
+## 2026-02-27 11:12:58 PST
+- Checkbox completed: `Normalize → LogEvent rows`
+- Implemented:
+  - Added `LogEvent` model and migration (`analyses.0002_logevent`) to persist normalized log lines per analysis run.
+  - Added normalization module (`analyses/normalization.py`) for:
+    - timestamp normalization (multiple formats)
+    - deterministic message fingerprint generation
+    - normalized event field shaping
+  - Updated Celery analysis pipeline to:
+    - parse lines
+    - normalize each line
+    - bulk insert `LogEvent` rows with line numbers
+    - keep reruns idempotent by clearing prior events for the same analysis before reinserting
+  - Added `LogEvent` admin registration.
+  - Reliability fix applied while validating this iteration:
+    - introduced worker-specific entrypoint (`worker_entrypoint.sh`) to prevent backend/worker migration race on startup.
+- Security/data-integrity decisions:
+  - Fingerprints are generated from normalized content for deterministic grouping without storing derived secrets.
+  - `LogEvent` uses unique `(analysis_run, line_no)` constraint to protect per-run line integrity.
+  - Worker no longer competes for schema migrations during startup, reducing transient migration conflicts.
+- Files modified:
+  - `backend/analyses/models.py`
+  - `backend/analyses/migrations/0002_logevent.py`
+  - `backend/analyses/normalization.py`
+  - `backend/analyses/tasks.py`
+  - `backend/analyses/admin.py`
+  - `backend/scripts/worker_entrypoint.sh`
+  - `docker-compose.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose down --remove-orphans`
+  - `docker compose up -d --build`
+  - `docker compose exec -T backend python manage.py migrate --noinput`
+  - `docker compose exec -T backend python manage.py showmigrations analyses`
+  - `docker compose exec -T backend python manage.py check`
+  - End-to-end normalization verification with `curl` + Celery + DB checks:
+    - upload mixed log sample
+    - enqueue analysis
+    - poll status endpoint to completion
+    - verify `LogEvent` rows persisted (`count=3`, normalized levels/fingerprints present)
+  - `docker compose logs --no-color backend --tail=100`
+  - `docker compose logs --no-color worker --tail=120`
+- Next checkbox: `Stats computation (counts by level/service)`

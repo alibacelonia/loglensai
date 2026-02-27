@@ -16,61 +16,115 @@ from analyses.parsers import (
     parse_nginx_log_line,
     parse_timestamp_level_text_line,
 )
-from analyses.models import AnalysisRun
+from analyses.models import AnalysisRun, LogEvent
+from analyses.normalization import normalize_event_fields
 
 logger = logging.getLogger(__name__)
 
 
-def _count_lines_for_source(source) -> dict:
+def _parse_line(raw_line: str) -> tuple[dict, str]:
+    parsed_json = parse_json_log_line(raw_line)
+    if parsed_json is not None:
+        return parsed_json, "json"
+
+    parsed_text = parse_timestamp_level_text_line(raw_line)
+    if parsed_text is not None:
+        return parsed_text, "text"
+
+    parsed_nginx = parse_nginx_log_line(raw_line)
+    if parsed_nginx is not None:
+        return parsed_nginx, "nginx"
+
+    return {
+        "timestamp": None,
+        "level": "unknown",
+        "service": None,
+        "message": raw_line,
+        "trace_id": None,
+        "request_id": None,
+        "raw": raw_line,
+    }, "raw"
+
+
+def _process_source_lines(source, analysis_id: int) -> dict:
     stats = {
         "total_lines": 0,
         "truncated": False,
         "json_lines": 0,
         "text_lines": 0,
         "nginx_lines": 0,
+        "unparsed_lines": 0,
         "error_count": 0,
         "level_counts": {},
+        "services": [],
     }
+    service_names = set()
+    event_batch = []
+
+    LogEvent.objects.filter(analysis_run_id=analysis_id).delete()
+
     try:
-        for _line in iter_source_lines(
-            source,
-            max_lines=settings.ANALYSIS_TASK_MAX_LINES,
-            max_bytes=settings.ANALYSIS_READER_MAX_BYTES,
+        for line_no, raw_line in enumerate(
+            iter_source_lines(
+                source,
+                max_lines=settings.ANALYSIS_TASK_MAX_LINES,
+                max_bytes=settings.ANALYSIS_READER_MAX_BYTES,
+            ),
+            start=1,
         ):
             stats["total_lines"] += 1
-            parsed_json = parse_json_log_line(_line)
-            if parsed_json is not None:
+            parsed, parser_name = _parse_line(raw_line)
+            if parser_name == "json":
                 stats["json_lines"] += 1
-                level = parsed_json["level"]
-                stats["level_counts"][level] = stats["level_counts"].get(level, 0) + 1
-                if level in {"error", "fatal"}:
-                    stats["error_count"] += 1
-                continue
-
-            parsed_text = parse_timestamp_level_text_line(_line)
-            if parsed_text is not None:
+            elif parser_name == "text":
                 stats["text_lines"] += 1
-                level = parsed_text["level"]
-                stats["level_counts"][level] = stats["level_counts"].get(level, 0) + 1
-                if level in {"error", "fatal"}:
-                    stats["error_count"] += 1
-                continue
-
-            parsed_nginx = parse_nginx_log_line(_line)
-            if parsed_nginx is not None:
+            elif parser_name == "nginx":
                 stats["nginx_lines"] += 1
-                level = parsed_nginx["level"]
-                stats["level_counts"][level] = stats["level_counts"].get(level, 0) + 1
-                if level in {"error", "fatal"}:
-                    stats["error_count"] += 1
+            else:
+                stats["unparsed_lines"] += 1
+
+            normalized = normalize_event_fields(
+                line_no=line_no,
+                raw_line=raw_line,
+                parsed=parsed,
+                parser_name=parser_name,
+            )
+            level = normalized["level"]
+            stats["level_counts"][level] = stats["level_counts"].get(level, 0) + 1
+            if level in {"error", "fatal"}:
+                stats["error_count"] += 1
+
+            if normalized["service"]:
+                service_names.add(normalized["service"])
+
+            event_batch.append(
+                LogEvent(
+                    analysis_run_id=analysis_id,
+                    **normalized,
+                )
+            )
+            if len(event_batch) >= 500:
+                LogEvent.objects.bulk_create(event_batch, batch_size=500)
+                event_batch = []
+
+        if event_batch:
+            LogEvent.objects.bulk_create(event_batch, batch_size=500)
     except LineReaderTruncatedByLines:
+        if event_batch:
+            LogEvent.objects.bulk_create(event_batch, batch_size=500)
         stats["truncated"] = True
         stats["truncated_by"] = "line_limit"
     except LineReaderTruncatedByBytes:
+        if event_batch:
+            LogEvent.objects.bulk_create(event_batch, batch_size=500)
         stats["truncated"] = True
         stats["truncated_by"] = "byte_limit"
     except SourceLineReaderError:
+        if event_batch:
+            LogEvent.objects.bulk_create(event_batch, batch_size=500)
         stats["reader_error"] = "unreadable_source"
+
+    stats["services"] = sorted(service_names)
     return stats
 
 
@@ -104,8 +158,7 @@ def analyze_source(self, analysis_id: int):  # noqa: ARG001
         analysis.save(update_fields=["status", "started_at", "finished_at", "error_message", "updated_at"])
 
     try:
-        computed_stats = _count_lines_for_source(analysis.source)
-        computed_stats.setdefault("services", [])
+        computed_stats = _process_source_lines(analysis.source, analysis.id)
 
         with transaction.atomic():
             analysis = AnalysisRun.objects.select_for_update().get(id=analysis_id)

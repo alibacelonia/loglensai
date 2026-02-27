@@ -46,3 +46,39 @@ class AnalysisRun(models.Model):
 
     def __str__(self) -> str:
         return f"Analysis {self.id} ({self.status})"
+
+
+class LogEvent(models.Model):
+    analysis_run = models.ForeignKey(
+        AnalysisRun,
+        on_delete=models.CASCADE,
+        related_name="log_events",
+    )
+    timestamp = models.DateTimeField(null=True, blank=True)
+    level = models.CharField(max_length=16, default="unknown", db_index=True)
+    service = models.CharField(max_length=128, blank=True, default="")
+    message = models.TextField()
+    raw = models.TextField()
+    fingerprint = models.CharField(max_length=64, db_index=True)
+    trace_id = models.CharField(max_length=128, null=True, blank=True)
+    request_id = models.CharField(max_length=128, null=True, blank=True)
+    line_no = models.PositiveIntegerField()
+    tags = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["line_no"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["analysis_run", "line_no"],
+                name="logevent_unique_line_per_analysis",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["analysis_run", "line_no"], name="logevent_analysis_line_idx"),
+            models.Index(fields=["analysis_run", "level"], name="logevent_analysis_level_idx"),
+            models.Index(fields=["analysis_run", "fingerprint"], name="logevent_analysis_fp_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"LogEvent {self.analysis_run_id}:{self.line_no}"

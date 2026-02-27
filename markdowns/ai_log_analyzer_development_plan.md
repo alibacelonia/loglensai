@@ -24,7 +24,7 @@ Check boxes as you implement.
   - [x] JSON logs
   - [x] timestamp+level text logs
   - [x] nginx error/access (basic)
-- [ ] Normalize → LogEvent rows
+- [x] Normalize → LogEvent rows
 - [ ] Stats computation (counts by level/service)
 
 ## 5) Clustering
