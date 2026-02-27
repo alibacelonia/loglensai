@@ -136,6 +136,22 @@ REST_FRAMEWORK = {
 REDIS_HOST = os.getenv("REDIS_HOST", "")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 HEALTHCHECK_TIMEOUT_SECONDS = float(os.getenv("HEALTHCHECK_TIMEOUT_SECONDS", "1.5"))
+SOURCE_UPLOAD_MAX_BYTES = int(os.getenv("SOURCE_UPLOAD_MAX_BYTES", str(10 * 1024 * 1024)))
+SOURCE_UPLOAD_ALLOWED_EXTENSIONS = {
+    ext.strip().lower()
+    for ext in os.getenv(
+        "SOURCE_UPLOAD_ALLOWED_EXTENSIONS", ".log,.txt,.jsonl,.gz"
+    ).split(",")
+    if ext.strip()
+}
+SOURCE_UPLOAD_ALLOWED_CONTENT_TYPES = {
+    content_type.strip().lower()
+    for content_type in os.getenv(
+        "SOURCE_UPLOAD_ALLOWED_CONTENT_TYPES",
+        "text/plain,application/json,application/gzip,application/x-gzip,application/octet-stream",
+    ).split(",")
+    if content_type.strip()
+}
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(

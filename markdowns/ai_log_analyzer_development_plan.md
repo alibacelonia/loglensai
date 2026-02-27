@@ -9,7 +9,7 @@ Check boxes as you implement.
 
 ## 2) Sources (Upload/Paste)
 - [x] Source model + migrations
-- [ ] Upload endpoint (size limits, file types)
+- [x] Upload endpoint (size limits, file types)
 - [ ] Store uploads in local media (dev), interface ready for S3/MinIO
 - [ ] List/detail/delete sources with access control
 

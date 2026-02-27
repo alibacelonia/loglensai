@@ -166,3 +166,39 @@
   - `docker compose logs --no-color backend --tail=60`
   - `docker compose logs --no-color worker --tail=20`
 - Next checkbox: `Upload endpoint (size limits, file types)`
+
+## 2026-02-27 10:48:58 PST
+- Checkbox completed: `Upload endpoint (size limits, file types)`
+- Implemented:
+  - Added authenticated upload endpoint at `POST /api/sources` (multipart form).
+  - Added file validation guardrails:
+    - max upload size (`SOURCE_UPLOAD_MAX_BYTES`)
+    - allowed file extensions (`SOURCE_UPLOAD_ALLOWED_EXTENSIONS`)
+    - allowed MIME/content types (`SOURCE_UPLOAD_ALLOWED_CONTENT_TYPES`)
+  - Added upload serializer and view for clean API-layer orchestration.
+  - Endpoint creates `Source` rows with `type=upload` and generated object keys (`pending/...`) while storage implementation is deferred to the next checklist item.
+  - Added environment configuration defaults for upload validation controls.
+- Security/data-integrity decisions:
+  - Endpoint is auth-protected by default DRF permissions.
+  - Filename is normalized to basename before key generation to avoid path traversal artifacts.
+  - Validation rejects unsupported types before persistence.
+- Files modified:
+  - `backend/loglens/settings.py`
+  - `backend/loglens/urls.py`
+  - `backend/.env.example`
+  - `backend/sources/serializers.py`
+  - `backend/sources/views.py`
+  - `backend/sources/urls.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - Multipart endpoint checks with `curl`:
+    - unauthenticated `POST /api/sources` -> `401`
+    - authenticated valid upload (`.log`) -> `201`
+    - authenticated invalid extension (`.exe`) -> `400`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=20`
+- Next checkbox: `Store uploads in local media (dev), interface ready for S3/MinIO`
