@@ -268,3 +268,46 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=20`
 - Next checkbox: `AnalysisRun model + endpoints`
+
+## 2026-02-27 10:56:19 PST
+- Checkbox completed: `AnalysisRun model + endpoints`
+- Implemented:
+  - Added `analyses` app with `AnalysisRun` model and initial migration.
+  - Added source-scoped analysis endpoints:
+    - `POST /api/sources/<source_id>/analyze` (create queued analysis run)
+    - `GET /api/sources/<source_id>/analyses` (list analysis runs for source)
+  - Added idempotent active-run behavior: repeated analyze requests on a source with queued/running run return the existing run.
+  - Added admin registration and serializer for `AnalysisRun`.
+  - Added model constraints and indexes:
+    - one active run (`queued` or `running`) per source
+    - finished time must not be earlier than started time
+    - source/time index for retrieval efficiency
+- Security/data-integrity decisions:
+  - Endpoint access is owner-scoped via source ownership checks; non-owners receive `404`.
+  - Active-run uniqueness is enforced at the database layer to protect idempotency under concurrency.
+- Files modified:
+  - `backend/loglens/settings.py`
+  - `backend/loglens/urls.py`
+  - `backend/analyses/__init__.py`
+  - `backend/analyses/apps.py`
+  - `backend/analyses/models.py`
+  - `backend/analyses/admin.py`
+  - `backend/analyses/serializers.py`
+  - `backend/analyses/views.py`
+  - `backend/analyses/migrations/__init__.py`
+  - `backend/analyses/migrations/0001_initial.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose exec -T backend python manage.py migrate --noinput`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - End-to-end analysis API checks with `curl` and assertions:
+    - first analyze request -> `202`
+    - second analyze request for same source -> `200` with same analysis id
+    - source analyses list -> `200` includes created run
+    - cross-user analyze request -> `404`
+  - `docker compose logs --no-color backend --tail=100`
+  - `docker compose logs --no-color worker --tail=20`
+- Next checkbox: `Celery task: analyze_source(analysis_id)`

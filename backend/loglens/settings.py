@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "core",
     "authn",
     "sources",
+    "analyses",
 ]
 
 MIDDLEWARE = [

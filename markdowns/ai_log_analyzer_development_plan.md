@@ -14,7 +14,7 @@ Check boxes as you implement.
 - [x] List/detail/delete sources with access control
 
 ## 3) Analysis orchestration (Celery)
-- [ ] AnalysisRun model + endpoints
+- [x] AnalysisRun model + endpoints
 - [ ] Celery task: `analyze_source(analysis_id)`
 - [ ] Status polling endpoint
 
