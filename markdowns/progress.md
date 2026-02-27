@@ -862,3 +862,22 @@
   - `docker compose logs --no-color worker --tail=140`
   - end-to-end verification with `curl` + analysis polling + DB assertion (`root_causes_ok`)
 - Next checkbox: `Remediation steps`
+
+## 2026-02-27 11:43:27 PST
+- Checkbox completed: `Remediation steps`
+- Implemented:
+  - Verified AI pipeline persists non-empty `AIInsight.remediation` guidance for completed analyses.
+  - Marked the `Remediation steps` checkbox complete in Section 6.
+- Security/data-integrity decisions:
+  - Remediation text is generated from redacted context and stored under owner-scoped analysis records.
+- Files modified:
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=90`
+  - `docker compose logs --no-color worker --tail=140`
+  - end-to-end verification with `curl` + analysis polling + DB assertion (`remediation_ok`)
+- Next checkbox: `Store confidence + evidence references`

@@ -39,7 +39,7 @@ Check boxes as you implement.
 - [x] Prompt + call to LLM for:
   - [x] Executive summary
   - [x] Root cause hypotheses
-  - [ ] Remediation steps
+  - [x] Remediation steps
 - [ ] Store confidence + evidence references
 
 ## 7) UI
