@@ -62,7 +62,7 @@ Check boxes as you implement.
 - [x] Rate limit analyze requests
 - [x] Enqueue analysis task only on DB commit (avoid pre-commit worker race)
 - [x] Timeouts + max lines guardrails
-- [ ] Retention policy config
+- [x] Retention policy config
 - [ ] Audit log events (upload/analyze/export/delete)
 
 ## 10) Portfolio finish

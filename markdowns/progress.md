@@ -1446,3 +1446,43 @@
     - polled `GET /api/analyses/<id>` until completion
     - validated truncation and guardrail metadata fields
 - Next checkbox: `Retention policy config`
+
+## 2026-02-26 20:36:13 PST
+- Checkbox completed: `Retention policy config`
+- Implemented:
+  - Added retention configuration settings:
+    - `SOURCE_RETENTION_ENABLED`
+    - `SOURCE_RETENTION_DAYS`
+    - `SOURCE_RETENTION_BATCH_SIZE`
+  - Added retention service `sources.retention.purge_expired_upload_sources(...)` to clean up expired upload sources in bounded batches.
+  - Added Celery task hook `run_retention_cleanup` for background retention execution.
+  - Added executable management command:
+    - `python manage.py run_retention_cleanup [--dry-run] [--limit N]`
+  - Cleanup behavior includes best-effort object-storage deletion plus DB source deletion (for expired upload sources only).
+- Security/data-integrity decisions:
+  - Retention deletion is bounded by configurable batch size to avoid large destructive operations in one run.
+  - Command supports dry-run mode for safe operational validation before deletion.
+  - Storage delete failures are tracked while allowing cleanup loop continuity.
+- Files modified:
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `backend/sources/retention.py`
+  - `backend/sources/tasks.py`
+  - `backend/sources/management/__init__.py`
+  - `backend/sources/management/commands/__init__.py`
+  - `backend/sources/management/commands/run_retention_cleanup.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --since=2m`
+  - `docker compose logs --no-color worker --since=2m`
+  - `docker compose logs --no-color frontend --since=2m`
+  - Retention verification with `curl` + Django command/shell assertions:
+    - created authenticated upload source via API
+    - manually aged source `created_at` beyond retention window
+    - ran `python manage.py run_retention_cleanup --limit 100`
+    - validated cleanup summary and confirmed source no longer appears in owner `GET /api/sources` response
+- Next checkbox: `Audit log events (upload/analyze/export/delete)`
