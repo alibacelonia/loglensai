@@ -1595,3 +1595,26 @@
     - triggered analyze and polled status
     - validated completed analysis with non-zero `total_lines` and `error_count`
 - Next checkbox: `“Demo script” steps for a 2–3 min walkthrough`
+
+## 2026-02-26 20:47:31 PST
+- Checkbox completed: `“Demo script” steps for a 2–3 min walkthrough`
+- Implemented:
+  - Added `markdowns/demo_script.md` with a timed 2-3 minute walkthrough:
+    - intro and architecture framing
+    - seeded upload and analysis flow
+    - cluster/timeline/results tour
+    - search/filter + export demo
+    - hardening close-out points
+  - Added backup API commands for live-demo fallback.
+  - Linked the walkthrough from root `README.md`.
+- Files modified:
+  - `markdowns/demo_script.md`
+  - `README.md`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `rg -n "Walkthrough Timeline|0:20-1:00|Backup Demo Files" markdowns/demo_script.md`
+  - `rg -n "Demo Walkthrough" README.md`
+- Next checkbox: `None (checklist complete)`

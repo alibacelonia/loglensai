@@ -48,3 +48,6 @@ Services:
 - MVP UI runs in dark mode by design.
 - Frontend uses same-origin proxy routes for backend access.
 - Worker tasks are queued on DB commit for retry-safe orchestration.
+
+## Demo Walkthrough
+- 2-3 minute script: [`markdowns/demo_script.md`](markdowns/demo_script.md)
