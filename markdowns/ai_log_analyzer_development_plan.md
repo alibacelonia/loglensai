@@ -8,7 +8,7 @@ Check boxes as you implement.
 - [x] Auth (JWT or session)
 
 ## 2) Sources (Upload/Paste)
-- [ ] Source model + migrations
+- [x] Source model + migrations
 - [ ] Upload endpoint (size limits, file types)
 - [ ] Store uploads in local media (dev), interface ready for S3/MinIO
 - [ ] List/detail/delete sources with access control

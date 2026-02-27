@@ -135,3 +135,34 @@
     - `POST /api/auth/login` -> `200`
     - authenticated `GET /api/me` -> `200`
 - Next checkbox: `Source model + migrations`
+
+## 2026-02-27 10:46:46 PST
+- Checkbox completed: `Source model + migrations`
+- Implemented:
+  - Added `sources` Django app and `Source` model with ownership and source-type fields.
+  - Added database migration `sources.0001_initial` for the new model.
+  - Added source admin registration for inspection in Django admin.
+  - Added model-level integrity check to enforce upload sources having a `file_object_key`.
+  - Added index for common owner/time queries (`owner`, `created_at`) to support per-user access patterns.
+- Security/data-integrity decisions:
+  - Ownership is explicit on the model (`owner` foreign key), enabling strict per-user access control in upcoming API endpoints.
+  - Upload records are guarded with a DB-level check constraint so invalid upload rows cannot be persisted.
+- Files modified:
+  - `backend/loglens/settings.py`
+  - `backend/sources/__init__.py`
+  - `backend/sources/apps.py`
+  - `backend/sources/models.py`
+  - `backend/sources/admin.py`
+  - `backend/sources/migrations/__init__.py`
+  - `backend/sources/migrations/0001_initial.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose exec -T backend python manage.py migrate --noinput`
+  - `docker compose exec -T backend python manage.py showmigrations sources`
+  - `docker compose exec -T backend python manage.py shell -c ...` (created sample source and verified DB constraint behavior)
+  - `docker compose ps`
+  - `docker compose logs --no-color backend --tail=60`
+  - `docker compose logs --no-color worker --tail=20`
+- Next checkbox: `Upload endpoint (size limits, file types)`
