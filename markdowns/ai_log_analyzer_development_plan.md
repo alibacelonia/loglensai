@@ -59,7 +59,8 @@ Check boxes as you implement.
 - [x] UI download buttons
 
 ## 9) Hardening
-- [ ] Rate limit analyze requests
+- [x] Rate limit analyze requests
+- [x] Enqueue analysis task only on DB commit (avoid pre-commit worker race)
 - [ ] Timeouts + max lines guardrails
 - [ ] Retention policy config
 - [ ] Audit log events (upload/analyze/export/delete)

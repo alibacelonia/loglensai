@@ -1,9 +1,10 @@
+import logging
+
 from django.conf import settings
 from django.db import transaction
 from django.http import HttpResponse
 from django.utils import timezone
 from rest_framework import status
-from rest_framework.exceptions import APIException
 from rest_framework.exceptions import NotFound
 from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
@@ -13,11 +14,13 @@ from analyses.models import AnalysisRun, LogCluster, LogEvent
 from analyses.redaction import redact_text
 from analyses.serializers import AnalysisRunSerializer, LogClusterSerializer, LogEventSerializer
 from analyses.tasks import analyze_source
+from analyses.throttles import AnalyzeRequestUserThrottle
 from sources.models import Source
 
 ALLOWED_EVENT_LEVELS = {"debug", "info", "warn", "error", "fatal", "unknown"}
 DEFAULT_EVENT_QUERY_LIMIT = 100
 MAX_EVENT_QUERY_LIMIT = 200
+logger = logging.getLogger(__name__)
 
 
 def _escape_markdown_cell(value: str) -> str:
@@ -25,6 +28,13 @@ def _escape_markdown_cell(value: str) -> str:
 
 
 class SourceAnalysisListCreateView(APIView):
+    throttle_classes = [AnalyzeRequestUserThrottle]
+
+    def get_throttles(self):
+        if self.request.method.upper() == "POST":
+            return [throttle() for throttle in self.throttle_classes]
+        return []
+
     def _get_owned_source(self, user, source_id: int) -> Source:
         source = Source.objects.filter(id=source_id, owner=user).first()
         if source is None:
@@ -50,14 +60,20 @@ class SourceAnalysisListCreateView(APIView):
             return Response(data, status=status.HTTP_200_OK)
 
         analysis = AnalysisRun.objects.create(source=source, status=AnalysisRun.Status.QUEUED)
-        try:
-            analyze_source.delay(analysis.id)
-        except Exception as error:
-            analysis.status = AnalysisRun.Status.FAILED
-            analysis.error_message = "Failed to enqueue analysis task."
-            analysis.finished_at = timezone.now()
-            analysis.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
-            raise APIException("Failed to enqueue analysis task.") from error
+
+        def enqueue_analysis_task():
+            try:
+                analyze_source.delay(analysis.id)
+            except Exception:
+                logger.exception("failed to enqueue analysis task analysis_id=%s", analysis.id)
+                AnalysisRun.objects.filter(id=analysis.id).update(
+                    status=AnalysisRun.Status.FAILED,
+                    error_message="Failed to enqueue analysis task.",
+                    finished_at=timezone.now(),
+                    updated_at=timezone.now(),
+                )
+
+        transaction.on_commit(enqueue_analysis_task)
 
         data = AnalysisRunSerializer(analysis).data
         return Response(data, status=status.HTTP_202_ACCEPTED)

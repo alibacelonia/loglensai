@@ -134,6 +134,9 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
+    "DEFAULT_THROTTLE_RATES": {
+        "analyze": os.getenv("ANALYZE_RATE_LIMIT", "10/min"),
+    },
 }
 
 REDIS_HOST = os.getenv("REDIS_HOST", "")

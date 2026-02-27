@@ -1371,3 +1371,40 @@
     - `GET /api/analyses/<id>/export-json` without token (validated `401`)
     - `GET /analyses/<id>` (page returns `200`)
 - Next checkbox: `Rate limit analyze requests`
+
+## 2026-02-26 20:30:39 PST
+- Checkbox completed: `Rate limit analyze requests`
+- Implemented:
+  - Added per-user analyze throttle class (`AnalyzeRequestUserThrottle`) with scope `analyze`.
+  - Applied throttling to analyze POST requests only (`SourceAnalysisListCreateView.get_throttles`), so listing analyses remains unaffected.
+  - Added configurable rate limit setting via env (`ANALYZE_RATE_LIMIT`, default `10/min`) through DRF `DEFAULT_THROTTLE_RATES`.
+- Added and completed required best-practice checkbox:
+  - `Enqueue analysis task only on DB commit (avoid pre-commit worker race)`
+- Best-practice implementation details:
+  - Updated analyze orchestration to enqueue Celery tasks with `transaction.on_commit(...)`.
+  - Added enqueue failure handling that marks the `AnalysisRun` as failed if dispatch cannot be queued.
+  - Verified that the prior worker race condition (`analysis task received unknown analysis_id`) no longer appears in recent logs after repeated rapid analyze requests.
+- Security/data-integrity decisions:
+  - Throttling is user-scoped and endpoint-specific; no broad throttling impact on unrelated read operations.
+  - Commit-time enqueue ensures worker reads only committed analysis rows, improving retry safety and consistency.
+- Files modified:
+  - `backend/analyses/throttles.py`
+  - `backend/analyses/views.py`
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --since=3m`
+  - `docker compose logs --no-color worker --since=3m`
+  - `docker compose logs --no-color frontend --since=3m`
+  - Rate-limit verification with `curl` + Python assertions:
+    - 12 rapid `POST /api/sources/<id>/analyze` calls (validated `429` after threshold)
+    - `GET /api/sources/<id>/analyses` (validated still `200`)
+  - Recheck after on-commit fix:
+    - repeated rapid analyze calls
+    - worker log assertion for absence of `analysis task received unknown analysis_id`
+- Next checkbox: `Timeouts + max lines guardrails`
