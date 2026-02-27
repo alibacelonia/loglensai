@@ -34,7 +34,7 @@ Check boxes as you implement.
 - [x] LogCluster model + endpoints
 
 ## 6) AI insights (guarded)
-- [ ] Redaction pipeline (secrets/PII masking)
+- [x] Redaction pipeline (secrets/PII masking)
 - [ ] AIInsight model
 - [ ] Prompt + call to LLM for:
   - [ ] Executive summary

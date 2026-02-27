@@ -722,3 +722,37 @@
   - `docker compose logs --no-color backend --tail=60`
   - `docker compose logs --no-color worker --tail=80`
 - Next checkbox: `Redaction pipeline (secrets/PII masking)`
+
+## 2026-02-27 11:35:24 PST
+- Checkbox completed: `Redaction pipeline (secrets/PII masking)`
+- Implemented:
+  - Added centralized redaction service at `backend/analyses/redaction.py` with configurable masking rules for:
+    - emails
+    - phone numbers
+    - IPv4 addresses
+    - JWTs / bearer tokens
+    - credential-like key/value and query-string secrets
+  - Wired redaction into `normalize_event_fields` so masking occurs before `LogEvent` persistence.
+  - Updated normalization tags to include `redaction_count` and `redaction_types` when masking occurs.
+  - Applied redacted message text to fingerprint generation to avoid token-specific cluster fragmentation.
+  - Added environment-driven redaction toggles in settings, `.env.example`, and `docker-compose.yml` for backend/worker.
+- Security/data-integrity decisions:
+  - Redaction now happens on both `message` and `raw` payloads before database writes.
+  - Redaction utility is centralized for reuse before future LLM calls, preventing duplicate masking logic.
+  - Runtime failure found during verification (`list` union bug) was fixed before completion.
+- Files modified:
+  - `backend/analyses/redaction.py`
+  - `backend/analyses/normalization.py`
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `docker-compose.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=120`
+  - end-to-end redaction verification with `curl` + analysis polling + DB assertions via `manage.py shell` (`redaction_ok`)
+- Next checkbox: `AIInsight model`
