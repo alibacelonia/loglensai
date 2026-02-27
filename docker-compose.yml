@@ -29,10 +29,13 @@ services:
     restart: unless-stopped
 
   backend:
-    image: alpine:latest
-    working_dir: /app
-    command: ["sh", "/app/scripts/backend_stub.sh"]
+    build:
+      context: ./backend
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
     environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-true}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-loglens-dev-only-secret-key}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,backend}
       DB_HOST: postgres
       DB_PORT: "5432"
       DB_NAME: ${POSTGRES_DB:-loglens}
@@ -41,9 +44,9 @@ services:
       REDIS_HOST: redis
       REDIS_PORT: "6379"
       WAIT_TIMEOUT_SECONDS: "90"
-      BACKEND_PORT: "8000"
+      MIGRATION_MAX_ATTEMPTS: "15"
     volumes:
-      - ./backend/scripts:/app/scripts:ro
+      - ./backend:/app
     ports:
       - "8000:8000"
     depends_on:
@@ -52,11 +55,11 @@ services:
       redis:
         condition: service_healthy
     healthcheck:
-      test: ["CMD-SHELL", "wget -q -O /dev/null http://localhost:8000/healthz || exit 1"]
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=2).read()"]
       interval: 10s
       timeout: 3s
       retries: 10
-      start_period: 5s
+      start_period: 20s
     restart: unless-stopped
 
   worker:

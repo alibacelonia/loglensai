@@ -50,3 +50,43 @@
   - `curl -fsS http://localhost:8000/healthz`
   - `curl -fsS http://localhost:3100 | head -n 5`
 - Next checkbox: `Django + DRF setup, env loading, health endpoint`
+
+## 2026-02-27 10:36:48 PST
+- Checkbox completed: `Django + DRF setup, env loading, health endpoint`
+- Implemented:
+  - Bootstrapped Django 5.1 + DRF backend project under `backend/`.
+  - Added environment loading via `.env` (`python-dotenv`) with safe defaults and guardrails for secret key when debug is disabled.
+  - Added `/healthz` API endpoint (DRF) with database and Redis dependency checks and 200/503 health semantics.
+  - Added backend container build/runtime (`backend/Dockerfile`, entrypoint) with dependency waits and migration retry loop before server startup.
+  - Updated Compose backend service to run Django, preserving worker/frontend services and health-gated startup.
+- Security/data-integrity decisions:
+  - Enforced secure default: backend refuses to start without an explicit `DJANGO_SECRET_KEY` when `DJANGO_DEBUG=false`.
+  - Health responses expose only coarse check states (`ok/fail/skipped`) and do not leak credentials or exception internals.
+- Files modified:
+  - `docker-compose.yml`
+  - `backend/requirements.txt`
+  - `backend/Dockerfile`
+  - `backend/.dockerignore`
+  - `backend/.env.example`
+  - `backend/manage.py`
+  - `backend/loglens/__init__.py`
+  - `backend/loglens/asgi.py`
+  - `backend/loglens/settings.py`
+  - `backend/loglens/urls.py`
+  - `backend/loglens/wsgi.py`
+  - `backend/core/__init__.py`
+  - `backend/core/apps.py`
+  - `backend/core/views.py`
+  - `backend/scripts/backend_entrypoint.sh`
+  - `backend/scripts/wait_for_dependencies.sh`
+  - `backend/scripts/worker_stub.sh`
+  - `backend/scripts/backend_stub.sh` (removed)
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose down --remove-orphans && docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=40`
+  - `curl -fsS http://localhost:8000/healthz`
+- Next checkbox: `Auth (JWT or session)`
