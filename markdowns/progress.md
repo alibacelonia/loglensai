@@ -202,3 +202,37 @@
   - `docker compose logs --no-color backend --tail=80`
   - `docker compose logs --no-color worker --tail=20`
 - Next checkbox: `Store uploads in local media (dev), interface ready for S3/MinIO`
+
+## 2026-02-27 10:50:51 PST
+- Checkbox completed: `Store uploads in local media (dev), interface ready for S3/MinIO`
+- Implemented:
+  - Added local media configuration (`MEDIA_ROOT`, `MEDIA_URL`) and wired source uploads to persist files in development.
+  - Added pluggable storage interface in `sources/storage.py`:
+    - `LocalSourceUploadStorage` (active)
+    - `S3CompatibleSourceUploadStorage` (interface placeholder for S3/MinIO path)
+  - Updated upload serializer to store the uploaded file through the storage abstraction and persist real `file_object_key` values.
+  - Added storage backend environment toggles (`SOURCE_STORAGE_BACKEND`, S3 settings) to support future MinIO/S3 implementation without API changes.
+  - Added backend media mount in Compose (`./backend/media:/app/media`) for local persistence visibility.
+- Security/data-integrity decisions:
+  - Local storage keys are generated server-side with UUID-based paths to avoid trusting user-supplied path structures.
+  - Unsupported storage backend values fail fast with explicit configuration errors.
+- Files modified:
+  - `backend/loglens/settings.py`
+  - `backend/sources/serializers.py`
+  - `backend/sources/storage.py`
+  - `backend/.env.example`
+  - `docker-compose.yml`
+  - `backend/media/.gitkeep`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d --build`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - Upload persistence check via `curl` and Python assertions:
+    - authenticated `POST /api/sources` -> `201`
+    - verified returned `file_object_key`
+    - verified file exists under `backend/media/<file_object_key>`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=20`
+- Next checkbox: `List/detail/delete sources with access control`

@@ -1,10 +1,12 @@
 from pathlib import Path
-from uuid import uuid4
 
 from django.conf import settings
+from django.core.exceptions import ImproperlyConfigured
 from rest_framework import serializers
+from rest_framework.exceptions import APIException
 
 from sources.models import Source
+from sources.storage import get_source_upload_storage
 
 
 class SourceSerializer(serializers.ModelSerializer):
@@ -53,8 +55,13 @@ class SourceUploadSerializer(serializers.Serializer):
         request = self.context["request"]
         uploaded_file = validated_data["file"]
         source_name = validated_data.get("name", Path(uploaded_file.name).name)
-        safe_filename = Path(uploaded_file.name).name
-        file_object_key = f"pending/{request.user.id}/{uuid4()}-{safe_filename}"
+        try:
+            file_object_key = get_source_upload_storage().save_upload(
+                owner_id=request.user.id,
+                uploaded_file=uploaded_file,
+            )
+        except (ImproperlyConfigured, NotImplementedError) as error:
+            raise APIException(str(error)) from error
 
         return Source.objects.create(
             owner=request.user,

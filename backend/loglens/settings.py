@@ -121,6 +121,8 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+MEDIA_URL = "/media/"
+MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
@@ -152,6 +154,10 @@ SOURCE_UPLOAD_ALLOWED_CONTENT_TYPES = {
     ).split(",")
     if content_type.strip()
 }
+SOURCE_STORAGE_BACKEND = os.getenv("SOURCE_STORAGE_BACKEND", "local").strip().lower()
+SOURCE_S3_BUCKET = os.getenv("SOURCE_S3_BUCKET", "").strip()
+SOURCE_S3_ENDPOINT_URL = os.getenv("SOURCE_S3_ENDPOINT_URL", "").strip()
+SOURCE_S3_REGION = os.getenv("SOURCE_S3_REGION", "us-east-1").strip()
 
 SIMPLE_JWT = {
     "ACCESS_TOKEN_LIFETIME": timedelta(

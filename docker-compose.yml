@@ -45,8 +45,13 @@ services:
       REDIS_PORT: "6379"
       WAIT_TIMEOUT_SECONDS: "90"
       MIGRATION_MAX_ATTEMPTS: "15"
+      SOURCE_STORAGE_BACKEND: ${SOURCE_STORAGE_BACKEND:-local}
+      SOURCE_S3_BUCKET: ${SOURCE_S3_BUCKET:-}
+      SOURCE_S3_ENDPOINT_URL: ${SOURCE_S3_ENDPOINT_URL:-}
+      SOURCE_S3_REGION: ${SOURCE_S3_REGION:-us-east-1}
     volumes:
       - ./backend:/app
+      - ./backend/media:/app/media
     ports:
       - "8000:8000"
     depends_on:
