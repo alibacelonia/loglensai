@@ -1,0 +1,4 @@
+{"timestamp":"2026-02-27T23:10:00Z","level":"error","service":"api","message":"Checkout timeout for order 1001"}
+{"timestamp":"2026-02-27T23:10:01Z","level":"error","service":"api","message":"Checkout timeout for order 1002"}
+{"timestamp":"2026-02-27T23:10:02Z","level":"warn","service":"worker","message":"Retry queue is high"}
+{"timestamp":"2026-02-27T23:10:03Z","level":"info","service":"nginx","message":"request served successfully"}

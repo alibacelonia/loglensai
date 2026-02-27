@@ -44,6 +44,16 @@ type DashboardSummary = {
   };
   top_clusters: DashboardCluster[];
   recent_jobs: DashboardJob[];
+  analysis_trend: Array<{
+    label: string;
+    total: number;
+    completed: number;
+    failed: number;
+  }>;
+  level_distribution: Array<{
+    level: string;
+    count: number;
+  }>;
 };
 
 const WINDOW_OPTIONS = [
@@ -61,6 +71,20 @@ function formatDate(value: string | null) {
     return "n/a";
   }
   return date.toLocaleString();
+}
+
+function buildTrendPath(values: number[], width: number, height: number) {
+  if (values.length === 0) {
+    return "";
+  }
+  const maxValue = Math.max(...values, 1);
+  return values
+    .map((value, index) => {
+      const x = values.length === 1 ? width / 2 : (index / (values.length - 1)) * width;
+      const y = height - (value / maxValue) * height;
+      return `${x},${y}`;
+    })
+    .join(" ");
 }
 
 export default function DashboardPage() {
@@ -239,6 +263,69 @@ export default function DashboardPage() {
             <p className="mt-1 text-sm text-muted-foreground">{kpi.caption}</p>
           </Card>
         ))}
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-2">
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold text-foreground">Analysis trend</h2>
+          {summary.analysis_trend.length === 0 ? (
+            <p className="mt-3 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              No trend data available yet.
+            </p>
+          ) : (
+            <>
+              <div className="mt-3 rounded-lg border border-border/60 bg-muted/20 p-3">
+                <svg viewBox="0 0 320 100" className="h-28 w-full" role="img" aria-label="Analysis volume trend chart">
+                  <polyline
+                    fill="none"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth="3"
+                    points={buildTrendPath(
+                      summary.analysis_trend.map((point) => point.total),
+                      320,
+                      100
+                    )}
+                  />
+                </svg>
+              </div>
+              <div className="mt-3 grid grid-cols-4 gap-2 text-xs text-muted-foreground">
+                {summary.analysis_trend.slice(-4).map((point) => (
+                  <div key={point.label} className="rounded-lg border border-border/60 bg-card px-2 py-1">
+                    <p className="truncate">{point.label}</p>
+                    <p className="text-sm font-semibold text-foreground">{point.total}</p>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+
+        <Card className="p-4">
+          <h2 className="text-sm font-semibold text-foreground">Event level distribution</h2>
+          {summary.level_distribution.length === 0 ? (
+            <p className="mt-3 rounded-lg border border-dashed border-border bg-muted/30 px-3 py-2 text-sm text-muted-foreground">
+              No events available yet for this range.
+            </p>
+          ) : (
+            <div className="mt-3 space-y-2">
+              {summary.level_distribution.map((row) => {
+                const maxCount = Math.max(...summary.level_distribution.map((item) => item.count), 1);
+                const widthPercent = (row.count / maxCount) * 100;
+                return (
+                  <div key={row.level} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="uppercase tracking-[0.08em]">{row.level}</span>
+                      <span>{row.count.toLocaleString()}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-muted">
+                      <div className="h-2 rounded-full bg-primary/70" style={{ width: `${widthPercent}%` }} />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </Card>
       </section>
 
       <section className="grid gap-4 xl:grid-cols-2">

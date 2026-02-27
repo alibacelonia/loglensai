@@ -210,6 +210,65 @@ class DashboardSummaryView(APIView):
                 }
             )
 
+        if requested_window == "24h":
+            bucket_count = 24
+            bucket_duration = timezone.timedelta(hours=1)
+            bucket_label_format = "%H:00"
+        elif requested_window == "7d":
+            bucket_count = 7
+            bucket_duration = timezone.timedelta(days=1)
+            bucket_label_format = "%b %d"
+        else:
+            bucket_count = 30
+            bucket_duration = timezone.timedelta(days=1)
+            bucket_label_format = "%b %d"
+
+        trend_buckets = []
+        for index in range(bucket_count):
+            bucket_start = window_start + (bucket_duration * index)
+            label = timezone.localtime(bucket_start).strftime(bucket_label_format)
+            trend_buckets.append(
+                {
+                    "label": label,
+                    "total": 0,
+                    "completed": 0,
+                    "failed": 0,
+                }
+            )
+
+        for analysis in owned_analyses:
+            if not analysis.created_at:
+                continue
+            elapsed = analysis.created_at - window_start
+            if elapsed.total_seconds() < 0:
+                continue
+            bucket_offset = int(elapsed.total_seconds() // bucket_duration.total_seconds())
+            if bucket_offset < 0 or bucket_offset >= bucket_count:
+                continue
+            bucket = trend_buckets[bucket_offset]
+            bucket["total"] += 1
+            if analysis.status == AnalysisRun.Status.COMPLETED:
+                bucket["completed"] += 1
+            elif analysis.status == AnalysisRun.Status.FAILED:
+                bucket["failed"] += 1
+
+        level_distribution_rows = (
+            LogEvent.objects.filter(
+                analysis_run__source__owner=request.user,
+                analysis_run__created_at__gte=window_start,
+            )
+            .values("level")
+            .annotate(count=Count("id"))
+            .order_by("-count")
+        )
+        level_distribution = [
+            {
+                "level": row.get("level") or "unknown",
+                "count": int(row.get("count") or 0),
+            }
+            for row in level_distribution_rows
+        ]
+
         payload = {
             "window": requested_window,
             "window_start": window_start,
@@ -226,6 +285,8 @@ class DashboardSummaryView(APIView):
             },
             "top_clusters": top_clusters,
             "recent_jobs": recent_jobs,
+            "analysis_trend": trend_buckets,
+            "level_distribution": level_distribution,
         }
         return Response(payload, status=status.HTTP_200_OK)
 

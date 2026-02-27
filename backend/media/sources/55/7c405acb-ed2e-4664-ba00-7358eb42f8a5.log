@@ -1,0 +1,2 @@
+{"timestamp":"2026-02-28T00:05:00Z","level":"error","service":"api","message":"db timeout for user someone@example.com"}
+{"timestamp":"2026-02-28T00:05:01Z","level":"warn","service":"worker","message":"retry queue elevated"}

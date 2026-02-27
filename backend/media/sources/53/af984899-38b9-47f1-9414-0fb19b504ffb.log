@@ -1,0 +1,2 @@
+{"timestamp":"2026-02-27T23:55:00Z","level":"error","service":"api","message":"failed checkout for alice@example.com token=abcd123"}
+{"timestamp":"2026-02-27T23:55:01Z","level":"warn","service":"worker","message":"retry queue high ip=10.0.0.5"}

@@ -1,0 +1,3 @@
+2026-02-27T22:05:00Z ERROR checkout Payment gateway timeout customer=alice@example.com
+2026-02-27T22:05:01Z ERROR checkout Payment gateway timeout customer=alice@example.com
+2026-02-27T22:05:02Z WARN worker retry queue depth is high token=abc123xyz

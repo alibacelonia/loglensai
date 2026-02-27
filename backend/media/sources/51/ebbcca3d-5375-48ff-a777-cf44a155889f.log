@@ -1,0 +1,2 @@
+{"timestamp":"2026-02-27T23:40:00Z","level":"error","service":"api","message":"Card declined for user jane@example.com token=abc123"}
+{"timestamp":"2026-02-27T23:40:01Z","level":"error","service":"api","message":"Authorization failed Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.payload.signature"}

@@ -1,0 +1,4 @@
+2026-02-27T20:01:00Z ERROR api Payment gateway timeout for order 101
+2026-02-27T20:01:02Z ERROR api Payment gateway timeout for order 102
+2026-02-27T20:01:04Z ERROR api Payment gateway timeout for order 103
+2026-02-27T20:01:06Z WARN worker Retry queue backlog increased

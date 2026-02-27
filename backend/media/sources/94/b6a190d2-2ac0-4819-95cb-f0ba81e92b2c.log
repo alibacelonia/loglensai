@@ -1,0 +1,3 @@
+2026-02-27T08:00:00Z ERROR checkout timeout reached for order 101
+2026-02-27T08:00:01Z ERROR checkout timeout reached for order 102
+2026-02-27T08:00:02Z WARN payments retry attempt 1
