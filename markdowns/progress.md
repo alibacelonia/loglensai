@@ -1568,3 +1568,30 @@
   - `docker compose ps`
   - `rg -n 'Architecture|mermaid|screenshots' README.md`
 - Next checkbox: `Seed sample logs for demo`
+
+## 2026-02-26 20:46:09 PST
+- Checkbox completed: `Seed sample logs for demo`
+- Implemented:
+  - Added seeded demo log pack under `demo/sample_logs/` with three realistic scenarios:
+    - `webapp_checkout_incident.log` (text, app/worker outage pattern)
+    - `nginx_5xx_spike.log` (nginx access-style 5xx spike)
+    - `k8s_inventory_service.jsonl` (structured JSON logs)
+  - Samples are designed to exercise parser coverage and cluster/insight generation paths.
+- Files modified:
+  - `demo/sample_logs/webapp_checkout_incident.log`
+  - `demo/sample_logs/nginx_5xx_spike.log`
+  - `demo/sample_logs/k8s_inventory_service.jsonl`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --since=2m`
+  - `docker compose logs --no-color worker --since=2m`
+  - `docker compose logs --no-color frontend --since=2m`
+  - Seed verification with `curl` + Python assertions:
+    - uploaded `demo/sample_logs/webapp_checkout_incident.log`
+    - triggered analyze and polled status
+    - validated completed analysis with non-zero `total_lines` and `error_count`
+- Next checkbox: `“Demo script” steps for a 2–3 min walkthrough`

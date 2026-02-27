@@ -1,0 +1,7 @@
+{"timestamp":"2026-02-28T02:20:00Z","level":"info","service":"inventory","request_id":"inv-991","trace_id":"inv-trace-a","message":"reserve stock request received sku=SKU-42 qty=1"}
+{"timestamp":"2026-02-28T02:20:01Z","level":"warn","service":"inventory","request_id":"inv-991","trace_id":"inv-trace-a","message":"redis latency high region=us-east-1"}
+{"timestamp":"2026-02-28T02:20:02Z","level":"error","service":"inventory","request_id":"inv-991","trace_id":"inv-trace-a","message":"failed to acquire redis lock key=stock:SKU-42 timeout_ms=1200"}
+{"timestamp":"2026-02-28T02:20:03Z","level":"error","service":"inventory","request_id":"inv-992","trace_id":"inv-trace-b","message":"failed to acquire redis lock key=stock:SKU-42 timeout_ms=1200"}
+{"timestamp":"2026-02-28T02:20:04Z","level":"error","service":"inventory","request_id":"inv-993","trace_id":"inv-trace-c","message":"failed to acquire redis lock key=stock:SKU-42 timeout_ms=1200"}
+{"timestamp":"2026-02-28T02:20:05Z","level":"info","service":"inventory","request_id":"inv-994","trace_id":"inv-trace-d","message":"fallback cache path enabled"}
+{"timestamp":"2026-02-28T02:20:06Z","level":"warn","service":"inventory","request_id":"inv-995","trace_id":"inv-trace-e","message":"pod restart recommended due error rate"}

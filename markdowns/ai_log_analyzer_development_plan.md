@@ -67,5 +67,5 @@ Check boxes as you implement.
 
 ## 10) Portfolio finish
 - [x] README with architecture diagram + screenshots
-- [ ] Seed sample logs for demo
+- [x] Seed sample logs for demo
 - [ ] “Demo script” steps for a 2–3 min walkthrough
