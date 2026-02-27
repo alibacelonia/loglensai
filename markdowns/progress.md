@@ -1285,3 +1285,46 @@
     - `GET /api/analyses/<id>/export.json` (validated payload keys + redaction marker + attachment header)
     - `GET /api/analyses/<id>/export.json` as non-owner (validated `404`)
 - Next checkbox: `Markdown incident report endpoint`
+
+## 2026-02-26 20:24:50 PST
+- Checkbox completed: `Markdown incident report endpoint`
+- Implemented:
+  - Added backend endpoint `GET /api/analyses/<analysis_id>/export.md` for owner-scoped markdown incident reports.
+  - Added markdown report generation with structured sections:
+    - Summary
+    - Key Stats
+    - Top Clusters
+    - Root Cause Hypotheses
+    - Remediation
+    - Runbook
+    - Event Excerpts
+  - Added markdown attachment header: `Content-Disposition: attachment; filename="analysis-<id>-report.md"`.
+  - Added markdown export guardrails via settings:
+    - `EXPORT_MARKDOWN_MAX_CLUSTERS`
+    - `EXPORT_MARKDOWN_MAX_EVENTS`
+  - Added defensive redaction pass before writing dynamic values into the markdown output.
+- Security/data-integrity decisions:
+  - Endpoint enforces owner scoping; non-owner requests return `404`.
+  - Report output uses redacted values for message/service/trace/request and avoids raw log payload exposure.
+  - Cluster/event section sizes are bounded to keep endpoint response predictable.
+- Files modified:
+  - `backend/analyses/views.py`
+  - `backend/loglens/urls.py`
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose logs --no-color backend --since=3m`
+  - `docker compose logs --no-color worker --since=3m`
+  - `docker compose logs --no-color frontend --since=3m`
+  - End-to-end verification flow with `curl` + Python assertions:
+    - `POST /api/auth/register` (owner + non-owner users)
+    - `POST /api/sources`
+    - `POST /api/sources/<id>/analyze`
+    - `GET /api/analyses/<id>/export.md` (validated sections + redaction markers + attachment header)
+    - `GET /api/analyses/<id>/export.md` as non-owner (validated `404`)
+- Next checkbox: `UI download buttons`

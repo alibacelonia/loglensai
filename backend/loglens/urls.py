@@ -6,6 +6,7 @@ from analyses.views import (
     AnalysisClusterListView,
     AnalysisEventListView,
     AnalysisExportJSONView,
+    AnalysisExportMarkdownView,
     AnalysisRunStatusView,
     ClusterDetailView,
     SourceAnalysisListCreateView,
@@ -45,6 +46,11 @@ urlpatterns = [
         "api/analyses/<int:analysis_id>/export.json",
         AnalysisExportJSONView.as_view(),
         name="analysis-export-json",
+    ),
+    path(
+        "api/analyses/<int:analysis_id>/export.md",
+        AnalysisExportMarkdownView.as_view(),
+        name="analysis-export-markdown",
     ),
     path("api/clusters/<int:cluster_id>", ClusterDetailView.as_view(), name="cluster-detail"),
 ]

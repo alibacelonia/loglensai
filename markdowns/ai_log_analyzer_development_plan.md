@@ -55,7 +55,7 @@ Check boxes as you implement.
 
 ## 8) Export
 - [x] JSON export endpoint
-- [ ] Markdown incident report endpoint
+- [x] Markdown incident report endpoint
 - [ ] UI download buttons
 
 ## 9) Hardening
