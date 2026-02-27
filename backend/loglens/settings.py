@@ -46,6 +46,7 @@ INSTALLED_APPS = [
     "rest_framework",
     "rest_framework_simplejwt",
     "core",
+    "auditlog",
     "authn",
     "sources",
     "analyses",
@@ -142,6 +143,7 @@ REST_FRAMEWORK = {
 REDIS_HOST = os.getenv("REDIS_HOST", "")
 REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
 HEALTHCHECK_TIMEOUT_SECONDS = float(os.getenv("HEALTHCHECK_TIMEOUT_SECONDS", "1.5"))
+AUDIT_LOG_ENABLED = _env_bool("AUDIT_LOG_ENABLED", default=True)
 SOURCE_UPLOAD_MAX_BYTES = int(os.getenv("SOURCE_UPLOAD_MAX_BYTES", str(10 * 1024 * 1024)))
 SOURCE_UPLOAD_ALLOWED_EXTENSIONS = {
     ext.strip().lower()

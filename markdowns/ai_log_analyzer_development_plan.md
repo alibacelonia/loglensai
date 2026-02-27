@@ -63,7 +63,7 @@ Check boxes as you implement.
 - [x] Enqueue analysis task only on DB commit (avoid pre-commit worker race)
 - [x] Timeouts + max lines guardrails
 - [x] Retention policy config
-- [ ] Audit log events (upload/analyze/export/delete)
+- [x] Audit log events (upload/analyze/export/delete)
 
 ## 10) Portfolio finish
 - [ ] README with architecture diagram + screenshots

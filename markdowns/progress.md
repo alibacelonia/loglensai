@@ -1486,3 +1486,55 @@
     - ran `python manage.py run_retention_cleanup --limit 100`
     - validated cleanup summary and confirmed source no longer appears in owner `GET /api/sources` response
 - Next checkbox: `Audit log events (upload/analyze/export/delete)`
+
+## 2026-02-26 20:40:57 PST
+- Checkbox completed: `Audit log events (upload/analyze/export/delete)`
+- Implemented:
+  - Added `auditlog` app with persistent `AuditLogEvent` model and migration.
+  - Added audit event service helpers:
+    - `log_audit_event(...)`
+    - `safe_log_audit_event(...)` (best-effort, non-blocking)
+  - Wired audit events into required flows:
+    - upload: `SourceListCreateView.post`
+    - analyze start: `SourceAnalysisListCreateView.post`
+    - analyze finish/fail: `analyses.tasks.analyze_source`
+    - export: JSON + Markdown export views
+    - delete: `SourceDetailView.perform_destroy`
+  - Added admin registration for audit events.
+  - Added `AUDIT_LOG_ENABLED` configuration toggle.
+- Security/data-integrity decisions:
+  - Audit writes are best-effort and do not break core source/analysis operations if logging fails.
+  - Each audit event stores both resource-owner (`owner`) and initiating actor (`actor`, nullable for worker events).
+  - Event payloads include scoped metadata only and avoid raw-log body persistence in audit records.
+- Files modified:
+  - `backend/loglens/settings.py`
+  - `backend/.env.example`
+  - `backend/analyses/views.py`
+  - `backend/analyses/tasks.py`
+  - `backend/sources/views.py`
+  - `backend/auditlog/__init__.py`
+  - `backend/auditlog/apps.py`
+  - `backend/auditlog/models.py`
+  - `backend/auditlog/service.py`
+  - `backend/auditlog/admin.py`
+  - `backend/auditlog/migrations/__init__.py`
+  - `backend/auditlog/migrations/0001_initial.py`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose exec -T backend python manage.py makemigrations auditlog`
+  - `docker compose exec -T backend python manage.py migrate --noinput`
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose exec -T backend python manage.py check`
+  - `docker compose restart worker`
+  - `docker compose logs --no-color backend --since=2m`
+  - `docker compose logs --no-color worker --since=2m`
+  - `docker compose logs --no-color frontend --since=2m`
+  - End-to-end audit-flow verification with `curl` + Python + Django shell assertions:
+    - upload source
+    - start/complete analysis
+    - export json + markdown
+    - delete source
+    - verify owner audit event types include `upload`, `analyze_start`, `analyze_finish`, `export`, `delete`
+- Next checkbox: `README with architecture diagram + screenshots`

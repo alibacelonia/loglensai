@@ -6,6 +6,8 @@ from django.db.models import Count, Max, Min
 from django.db import transaction
 from django.utils import timezone
 
+from auditlog.models import AuditLogEvent
+from auditlog.service import safe_log_audit_event
 from analyses.line_reader import (
     LineReaderTruncatedByBytes,
     LineReaderTruncatedByLines,
@@ -286,15 +288,35 @@ def analyze_source(self, analysis_id: int):  # noqa: ARG001
                     analysis_run=analysis,
                     defaults=ai_insight_payload,
                 )
+            safe_log_audit_event(
+                owner_id=analysis.source.owner_id,
+                actor_id=None,
+                event_type=AuditLogEvent.EventType.ANALYZE_FINISH,
+                source_id=analysis.source_id,
+                analysis_id=analysis.id,
+                metadata={
+                    "status": analysis.status,
+                    "error_count": computed_stats.get("error_count", 0),
+                    "truncated": bool(computed_stats.get("truncated", False)),
+                },
+            )
 
         logger.info("analysis task completed analysis_id=%s", analysis_id)
         return {"analysis_id": analysis_id, "status": AnalysisRun.Status.COMPLETED}
     except Exception:
         logger.exception("analysis task failed analysis_id=%s", analysis_id)
         with transaction.atomic():
-            analysis = AnalysisRun.objects.select_for_update().get(id=analysis_id)
+            analysis = AnalysisRun.objects.select_for_update().select_related("source").get(id=analysis_id)
             analysis.status = AnalysisRun.Status.FAILED
             analysis.error_message = "Analysis execution failed."
             analysis.finished_at = timezone.now()
             analysis.save(update_fields=["status", "error_message", "finished_at", "updated_at"])
+            safe_log_audit_event(
+                owner_id=analysis.source.owner_id,
+                actor_id=None,
+                event_type=AuditLogEvent.EventType.ANALYZE_FAIL,
+                source_id=analysis.source_id,
+                analysis_id=analysis.id,
+                metadata={"status": analysis.status, "error_message": analysis.error_message},
+            )
         raise

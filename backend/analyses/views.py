@@ -10,6 +10,8 @@ from rest_framework.exceptions import ValidationError
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from auditlog.models import AuditLogEvent
+from auditlog.service import safe_log_audit_event
 from analyses.models import AnalysisRun, LogCluster, LogEvent
 from analyses.redaction import redact_text
 from analyses.serializers import AnalysisRunSerializer, LogClusterSerializer, LogEventSerializer
@@ -60,6 +62,14 @@ class SourceAnalysisListCreateView(APIView):
             return Response(data, status=status.HTTP_200_OK)
 
         analysis = AnalysisRun.objects.create(source=source, status=AnalysisRun.Status.QUEUED)
+        safe_log_audit_event(
+            owner_id=source.owner_id,
+            actor_id=request.user.id,
+            event_type=AuditLogEvent.EventType.ANALYZE_START,
+            source_id=source.id,
+            analysis_id=analysis.id,
+            metadata={"status": AnalysisRun.Status.QUEUED},
+        )
 
         def enqueue_analysis_task():
             try:
@@ -267,6 +277,14 @@ class AnalysisExportJSONView(APIView):
 
         response = Response(payload, status=status.HTTP_200_OK)
         response["Content-Disposition"] = f'attachment; filename=\"analysis-{analysis.id}-export.json\"'
+        safe_log_audit_event(
+            owner_id=analysis.source.owner_id,
+            actor_id=request.user.id,
+            event_type=AuditLogEvent.EventType.EXPORT,
+            source_id=analysis.source_id,
+            analysis_id=analysis.id,
+            metadata={"format": "json", "events_exported": len(events_payload)},
+        )
         return response
 
 
@@ -398,6 +416,14 @@ class AnalysisExportMarkdownView(APIView):
         report = "\n".join(lines).strip() + "\n"
         response = HttpResponse(report, content_type="text/markdown; charset=utf-8")
         response["Content-Disposition"] = f'attachment; filename=\"analysis-{analysis.id}-report.md\"'
+        safe_log_audit_event(
+            owner_id=analysis.source.owner_id,
+            actor_id=request.user.id,
+            event_type=AuditLogEvent.EventType.EXPORT,
+            source_id=analysis.source_id,
+            analysis_id=analysis.id,
+            metadata={"format": "markdown", "clusters_included": len(clusters), "events_included": len(events)},
+        )
         return response
 
 
