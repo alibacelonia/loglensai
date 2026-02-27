@@ -37,6 +37,9 @@ Services:
 ## Local Testing
 - Full local validation steps: [`docs/local-testing.md`](docs/local-testing.md)
 
+## Lightsail Deployment
+- Deployment and operations guide: [`docs/lightsail-deployment.md`](docs/lightsail-deployment.md)
+
 ## Screenshots
 ### Dashboard
 ![Dashboard](markdowns/screenshots/dashboard.png)

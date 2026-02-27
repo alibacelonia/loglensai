@@ -1,0 +1,249 @@
+name: loglensai
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-loglens}
+      POSTGRES_USER: ${POSTGRES_USER:-loglens}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-loglens_dev_password}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-loglens} -d ${POSTGRES_DB:-loglens}"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    mem_limit: ${POSTGRES_MEM_LIMIT:-512m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    command:
+      [
+        "redis-server",
+        "--save",
+        "",
+        "--appendonly",
+        "no",
+        "--maxmemory",
+        "${REDIS_MAXMEMORY:-128mb}",
+        "--maxmemory-policy",
+        "allkeys-lru",
+      ]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 3s
+    mem_limit: ${REDIS_MEM_LIMIT:-256m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+    command: ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-insecure-dev-secret-key-not-for-production-000}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,backend}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-loglens}
+      DB_USER: ${POSTGRES_USER:-loglens}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-loglens_dev_password}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      WAIT_TIMEOUT_SECONDS: "90"
+      MIGRATION_MAX_ATTEMPTS: "15"
+      SOURCE_STORAGE_BACKEND: ${SOURCE_STORAGE_BACKEND:-local}
+      SOURCE_S3_BUCKET: ${SOURCE_S3_BUCKET:-}
+      SOURCE_S3_ENDPOINT_URL: ${SOURCE_S3_ENDPOINT_URL:-}
+      SOURCE_S3_REGION: ${SOURCE_S3_REGION:-us-east-1}
+      SOURCE_RETENTION_ENABLED: ${SOURCE_RETENTION_ENABLED:-true}
+      SOURCE_RETENTION_DAYS: ${SOURCE_RETENTION_DAYS:-30}
+      SOURCE_RETENTION_BATCH_SIZE: ${SOURCE_RETENTION_BATCH_SIZE:-500}
+      ANALYZE_RATE_LIMIT: ${ANALYZE_RATE_LIMIT:-10/min}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      ANALYSIS_TASK_MAX_LINES: ${ANALYSIS_TASK_MAX_LINES:-50000}
+      ANALYSIS_READER_MAX_BYTES: ${ANALYSIS_READER_MAX_BYTES:-20971520}
+      ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS: ${ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS:-120}
+      ANALYSIS_TASK_TIME_LIMIT_SECONDS: ${ANALYSIS_TASK_TIME_LIMIT_SECONDS:-180}
+      CLUSTER_TFIDF_ENABLED: ${CLUSTER_TFIDF_ENABLED:-true}
+      CLUSTER_TFIDF_SIMILARITY_THRESHOLD: ${CLUSTER_TFIDF_SIMILARITY_THRESHOLD:-0.72}
+      REDACTION_ENABLED: ${REDACTION_ENABLED:-true}
+      REDACTION_MASK_EMAILS: ${REDACTION_MASK_EMAILS:-true}
+      REDACTION_MASK_PHONE_NUMBERS: ${REDACTION_MASK_PHONE_NUMBERS:-true}
+      REDACTION_MASK_IP_ADDRESSES: ${REDACTION_MASK_IP_ADDRESSES:-true}
+      REDACTION_MASK_JWTS: ${REDACTION_MASK_JWTS:-true}
+      REDACTION_MASK_API_KEYS: ${REDACTION_MASK_API_KEYS:-true}
+      LLM_ENABLED: ${LLM_ENABLED:-true}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_API_URL: ${LLM_API_URL:-https://api.openai.com/v1/chat/completions}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_REQUEST_TIMEOUT_SECONDS: ${LLM_REQUEST_TIMEOUT_SECONDS:-20}
+      LLM_MAX_CLUSTER_CONTEXT: ${LLM_MAX_CLUSTER_CONTEXT:-20}
+    volumes:
+      - backend_media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/healthz', timeout=2).read()"]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    mem_limit: ${BACKEND_MEM_LIMIT:-768m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: ./backend
+    entrypoint: ["sh", "/app/scripts/worker_entrypoint.sh"]
+    command:
+      [
+        "celery",
+        "-A",
+        "loglens",
+        "worker",
+        "--loglevel=INFO",
+        "--concurrency=1",
+        "--without-gossip",
+        "--without-mingle",
+      ]
+    environment:
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-false}
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:-insecure-dev-secret-key-not-for-production-000}
+      DJANGO_ALLOWED_HOSTS: ${DJANGO_ALLOWED_HOSTS:-localhost,127.0.0.1,0.0.0.0,backend}
+      DB_HOST: postgres
+      DB_PORT: "5432"
+      DB_NAME: ${POSTGRES_DB:-loglens}
+      DB_USER: ${POSTGRES_USER:-loglens}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-loglens_dev_password}
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      WAIT_TIMEOUT_SECONDS: "90"
+      SOURCE_STORAGE_BACKEND: ${SOURCE_STORAGE_BACKEND:-local}
+      SOURCE_S3_BUCKET: ${SOURCE_S3_BUCKET:-}
+      SOURCE_S3_ENDPOINT_URL: ${SOURCE_S3_ENDPOINT_URL:-}
+      SOURCE_S3_REGION: ${SOURCE_S3_REGION:-us-east-1}
+      SOURCE_RETENTION_ENABLED: ${SOURCE_RETENTION_ENABLED:-true}
+      SOURCE_RETENTION_DAYS: ${SOURCE_RETENTION_DAYS:-30}
+      SOURCE_RETENTION_BATCH_SIZE: ${SOURCE_RETENTION_BATCH_SIZE:-500}
+      CELERY_BROKER_URL: ${CELERY_BROKER_URL:-redis://redis:6379/0}
+      CELERY_RESULT_BACKEND: ${CELERY_RESULT_BACKEND:-redis://redis:6379/1}
+      ANALYSIS_TASK_MAX_LINES: ${ANALYSIS_TASK_MAX_LINES:-50000}
+      ANALYSIS_READER_MAX_BYTES: ${ANALYSIS_READER_MAX_BYTES:-20971520}
+      ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS: ${ANALYSIS_TASK_SOFT_TIME_LIMIT_SECONDS:-120}
+      ANALYSIS_TASK_TIME_LIMIT_SECONDS: ${ANALYSIS_TASK_TIME_LIMIT_SECONDS:-180}
+      CLUSTER_TFIDF_ENABLED: ${CLUSTER_TFIDF_ENABLED:-true}
+      CLUSTER_TFIDF_SIMILARITY_THRESHOLD: ${CLUSTER_TFIDF_SIMILARITY_THRESHOLD:-0.72}
+      REDACTION_ENABLED: ${REDACTION_ENABLED:-true}
+      REDACTION_MASK_EMAILS: ${REDACTION_MASK_EMAILS:-true}
+      REDACTION_MASK_PHONE_NUMBERS: ${REDACTION_MASK_PHONE_NUMBERS:-true}
+      REDACTION_MASK_IP_ADDRESSES: ${REDACTION_MASK_IP_ADDRESSES:-true}
+      REDACTION_MASK_JWTS: ${REDACTION_MASK_JWTS:-true}
+      REDACTION_MASK_API_KEYS: ${REDACTION_MASK_API_KEYS:-true}
+      LLM_ENABLED: ${LLM_ENABLED:-true}
+      LLM_PROVIDER: ${LLM_PROVIDER:-mock}
+      LLM_MODEL: ${LLM_MODEL:-gpt-4o-mini}
+      LLM_API_URL: ${LLM_API_URL:-https://api.openai.com/v1/chat/completions}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+      LLM_REQUEST_TIMEOUT_SECONDS: ${LLM_REQUEST_TIMEOUT_SECONDS:-20}
+      LLM_MAX_CLUSTER_CONTEXT: ${LLM_MAX_CLUSTER_CONTEXT:-20}
+    volumes:
+      - backend_media:/app/media
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    mem_limit: ${WORKER_MEM_LIMIT:-768m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.lightsail
+    command: ["npm", "run", "start", "--", "--hostname", "0.0.0.0", "--port", "3000"]
+    environment:
+      NODE_ENV: production
+      NODE_OPTIONS: ${NODE_OPTIONS:---max-old-space-size=384}
+      BACKEND_INTERNAL_URL: ${BACKEND_INTERNAL_URL:-http://backend:8000}
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "require('http').get('http://localhost:3000', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 10
+      start_period: 30s
+    mem_limit: ${FRONTEND_MEM_LIMIT:-768m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.8-alpine
+    depends_on:
+      frontend:
+        condition: service_healthy
+    environment:
+      CADDY_SITE_ADDRESS: ${CADDY_SITE_ADDRESS:-:80}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/lightsail/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    mem_limit: ${CADDY_MEM_LIMIT:-256m}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  backend_media:
+  caddy_data:
+  caddy_config:
