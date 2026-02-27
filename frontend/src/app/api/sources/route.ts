@@ -6,6 +6,15 @@ export const runtime = "nodejs";
 
 const SOURCE_PROXY_TIMEOUT_MS = 15_000;
 
+export async function GET(request: NextRequest) {
+  return proxyAuthenticatedJson({
+    request,
+    path: "/api/sources",
+    method: "GET",
+    timeoutMs: SOURCE_PROXY_TIMEOUT_MS
+  });
+}
+
 export async function POST(request: NextRequest) {
   const incoming = await request.formData();
   const file = incoming.get("file");

@@ -69,3 +69,57 @@ Check boxes as you implement.
 - [x] README with architecture diagram + screenshots
 - [x] Seed sample logs for demo
 - [x] “Demo script” steps for a 2–3 min walkthrough
+
+## 11) Sidebar-linked modules (post-MVP)
+### Analysis
+- [x] Dashboard: replace placeholder with real KPI cards (ingestion volume, analysis success/fail rate, top error clusters, recent jobs)
+- [x] Dashboard: add time-range selector and refresh action wired to backend summary endpoint
+- [x] Upload Logs: wire `/upload-logs` route to the actual source ingest workflow (file + paste + validation states)
+- [x] Upload Logs: show latest uploaded sources table with quick actions (analyze, view details, delete)
+- [x] Live Tail: implement streaming log viewer (WebSocket/SSE) with pause/resume, level filter, and search
+- [x] Live Tail: add safety limits (max buffered lines, truncation indicator, reconnect/backoff handling)
+
+### Insights
+- [x] Anomalies: backend endpoint + UI table for anomaly groups (score, service, first/last seen, status)
+- [x] Anomalies: detail panel with evidence events and mark-as-reviewed action
+- [x] Incidents: incident list page with status/severity/owner filters and pagination
+- [x] Incidents: incident detail page with timeline, linked clusters, and remediation notes
+- [x] Reports: reports index with generated report history and download/re-generate actions
+- [x] Reports: scheduled report configuration (frequency, recipients/webhook target, report scope)
+
+### Admin
+- [x] Integrations: provider configuration UI (LLM provider, alerting/webhook endpoints, issue tracker)
+- [x] Integrations: connection test actions with safe error surfacing and audit events
+- [x] Settings: workspace-level preferences (retention, default filters, timezone)
+- [x] Settings: account security page (change password, active session list, sign-out-all-sessions)
+
+### Cross-cutting for sidebar routes
+- [x] Add per-route authorization checks (unauthenticated redirect + forbidden states)
+- [x] Add loading/empty/error states for every sidebar-linked page
+- [x] Add e2e smoke tests covering navigation and core flows for all sidebar links
+
+## 12) Topbar actions (notifications + search)
+### Product decision
+- [ ] Decision gate: keep topbar notifications/search as functional features, or intentionally remove both until v2
+- [ ] If removed: replace with a compact status chip (env + queue health) and document rationale in README/progress
+
+### Notifications (if kept)
+- [ ] Notification model + migration (user, type, title, metadata, read_at, created_at)
+- [ ] Event producers for key triggers (analysis completed/failed, source retention deletion, integration failures)
+- [ ] Notification API endpoints: list (paginated), unread count, mark read, mark all read
+- [ ] Enforce per-user visibility and ownership checks for all notification records
+- [ ] Topbar bell: unread badge + dropdown panel with latest items and empty/error states
+- [ ] Add polling (or SSE/WebSocket) for near-real-time badge updates with backoff and timeout guards
+
+### Search (if kept)
+- [ ] Define search scope for MVP (`sources`, `analyses`, `clusters`, `incidents`) and ranking rules
+- [ ] Backend search endpoint with query validation, limits, and response type tags
+- [ ] Topbar search UX: focus shortcut (`/` or `Cmd/Ctrl+K`), loading state, grouped results, keyboard navigation
+- [ ] Result actions route correctly to detail pages and preserve auth constraints
+- [ ] Add audit events for search access patterns without storing sensitive query contents
+
+### Quality + rollout
+- [ ] Add feature flags: `TOPBAR_NOTIFICATIONS_ENABLED`, `TOPBAR_SEARCH_ENABLED`
+- [ ] Add unit/integration tests for notification APIs and search endpoint
+- [ ] Add frontend tests for bell dropdown, unread updates, and search interaction flows
+- [ ] Add docs for operational limits (poll interval, max results, retention policy for notifications)

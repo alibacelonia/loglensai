@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
@@ -135,3 +136,179 @@ class AIInsight(models.Model):
 
     def __str__(self) -> str:
         return f"AIInsight analysis={self.analysis_run_id}"
+
+
+class AnomalyReviewState(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        REVIEWED = "reviewed", "Reviewed"
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="anomaly_review_states",
+    )
+    fingerprint = models.CharField(max_length=64, db_index=True)
+    service = models.CharField(max_length=128, blank=True, default="")
+    status = models.CharField(max_length=16, choices=Status.choices, default=Status.OPEN)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        constraints = [
+            models.UniqueConstraint(
+                fields=["owner", "fingerprint", "service"],
+                name="anomaly_review_unique_owner_fp_service",
+            ),
+        ]
+        indexes = [
+            models.Index(fields=["owner", "status"], name="anom_rev_owner_status_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"anomaly-review:{self.owner_id}:{self.fingerprint[:8]}:{self.service or 'unknown'}"
+
+
+class Incident(models.Model):
+    class Status(models.TextChoices):
+        OPEN = "open", "Open"
+        INVESTIGATING = "investigating", "Investigating"
+        RESOLVED = "resolved", "Resolved"
+
+    class Severity(models.TextChoices):
+        LOW = "low", "Low"
+        MEDIUM = "medium", "Medium"
+        HIGH = "high", "High"
+        CRITICAL = "critical", "Critical"
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="incidents",
+    )
+    analysis_run = models.ForeignKey(
+        AnalysisRun,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="incidents",
+    )
+    title = models.CharField(max_length=255)
+    summary = models.TextField(blank=True, default="")
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.OPEN, db_index=True)
+    severity = models.CharField(max_length=24, choices=Severity.choices, default=Severity.MEDIUM, db_index=True)
+    assigned_owner = models.CharField(max_length=128, blank=True, default="", db_index=True)
+    remediation_notes = models.TextField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["owner", "status"], name="incident_owner_status_idx"),
+            models.Index(fields=["owner", "severity"], name="incident_owner_sev_idx"),
+        ]
+
+    def __str__(self) -> str:
+        return f"incident:{self.id}:{self.status}:{self.severity}"
+
+
+class ReportRun(models.Model):
+    class Format(models.TextChoices):
+        JSON = "json", "JSON"
+        MARKDOWN = "markdown", "Markdown"
+
+    class Status(models.TextChoices):
+        COMPLETED = "completed", "Completed"
+        FAILED = "failed", "Failed"
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="report_runs",
+    )
+    analysis_run = models.ForeignKey(
+        AnalysisRun,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="report_runs",
+    )
+    format = models.CharField(max_length=24, choices=Format.choices, default=Format.MARKDOWN)
+    status = models.CharField(max_length=24, choices=Status.choices, default=Status.COMPLETED)
+    report_scope = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        indexes = [
+            models.Index(fields=["owner", "-created_at"], name="report_run_owner_created_idx"),
+        ]
+
+
+class ReportSchedule(models.Model):
+    class Frequency(models.TextChoices):
+        DAILY = "daily", "Daily"
+        WEEKLY = "weekly", "Weekly"
+        MONTHLY = "monthly", "Monthly"
+
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="report_schedules",
+    )
+    frequency = models.CharField(max_length=24, choices=Frequency.choices, default=Frequency.WEEKLY)
+    recipients = models.TextField(blank=True, default="")
+    webhook_target = models.URLField(blank=True, default="")
+    report_scope = models.JSONField(default=dict, blank=True)
+    enabled = models.BooleanField(default=True)
+    last_run_at = models.DateTimeField(null=True, blank=True)
+    next_run_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+        indexes = [
+            models.Index(fields=["owner", "enabled"], name="report_sched_owner_enabled_idx"),
+        ]
+
+
+class IntegrationConfig(models.Model):
+    class LLMProvider(models.TextChoices):
+        MOCK = "mock", "Mock"
+        OPENAI = "openai", "OpenAI Compatible"
+
+    owner = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="integration_config",
+    )
+    llm_provider = models.CharField(max_length=32, choices=LLMProvider.choices, default=LLMProvider.MOCK)
+    llm_api_url = models.URLField(blank=True, default="")
+    alert_webhook_url = models.URLField(blank=True, default="")
+    issue_tracker_url = models.URLField(blank=True, default="")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]
+
+
+class WorkspacePreference(models.Model):
+    owner = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="workspace_preference",
+    )
+    retention_days = models.PositiveIntegerField(default=30)
+    default_level_filter = models.CharField(max_length=16, default="error")
+    timezone = models.CharField(max_length=64, default="UTC")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at"]

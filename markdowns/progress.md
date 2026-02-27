@@ -1618,3 +1618,302 @@
   - `rg -n "Walkthrough Timeline|0:20-1:00|Backup Demo Files" markdowns/demo_script.md`
   - `rg -n "Demo Walkthrough" README.md`
 - Next checkbox: `None (checklist complete)`
+
+## 2026-02-27 14:31:51 PST
+- Checkbox completed: `Dashboard: replace placeholder with real KPI cards (ingestion volume, analysis success/fail rate, top error clusters, recent jobs)`
+- Implemented:
+  - Added authenticated backend dashboard summary endpoint (`GET /api/dashboard/summary`) with owner-scoped KPI aggregation for ingested sources, analysis success/fail rates, top clusters, and recent jobs.
+  - Added frontend server route proxy (`GET /api/dashboard/summary`) with strict `window` query validation.
+  - Replaced dashboard placeholder UI with real KPI cards plus top-clusters and recent-jobs tables, including loading, empty, and error states.
+- Files modified:
+  - `backend/analyses/views.py`
+  - `backend/loglens/urls.py`
+  - `frontend/src/app/api/dashboard/summary/route.ts`
+  - `frontend/src/app/(app)/page.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=80`
+  - `docker compose logs --no-color frontend --tail=120`
+  - Authenticated verification flow with `curl`:
+    - register/login
+    - upload source
+    - start and poll analysis
+    - call backend `GET /api/dashboard/summary?window=24h`
+    - call frontend proxy `GET /api/dashboard/summary?window=24h` using auth cookies
+  - `docker compose exec -T backend python manage.py check`
+- Result:
+  - Backend and worker remained healthy.
+  - Dashboard summary endpoint returns KPI/top-cluster/recent-job payloads.
+  - Frontend dashboard now renders live summary data instead of placeholder text.
+- Next checkbox: `Dashboard: add time-range selector and refresh action wired to backend summary endpoint`
+
+## 2026-02-27 14:33:31 PST
+- Checkbox completed: `Dashboard: add time-range selector and refresh action wired to backend summary endpoint`
+- Implemented:
+  - Added dashboard time-range selector (`24h`, `7d`, `30d`) wired to `/api/dashboard/summary`.
+  - Added manual refresh button that re-fetches the selected window without navigation.
+  - Added frontend proxy-side query guardrail for dashboard window values.
+- Files modified:
+  - `frontend/src/app/(app)/page.tsx`
+  - `frontend/src/app/api/dashboard/summary/route.ts`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `curl -fsS http://localhost:8000/healthz`
+  - `docker compose logs --no-color backend --tail=40`
+  - `docker compose logs --no-color worker --tail=40`
+  - `docker compose logs --no-color frontend --tail=60`
+  - `docker compose restart frontend`
+  - `curl http://localhost:3100/`
+  - Authenticated verification with `curl`:
+    - backend `GET /api/dashboard/summary?window=24h|7d|30d`
+    - frontend proxy `GET /api/dashboard/summary?window=7d|30d`
+    - invalid-window guardrail check (`window=2h` => 400)
+- Result:
+  - Dashboard supports selectable time windows and explicit refresh action.
+  - Backend, worker, and frontend remained healthy after restart.
+- Next checkbox: `Upload Logs: wire /upload-logs route to the actual source ingest workflow (file + paste + validation states)`
+
+## 2026-02-27 14:34:25 PST
+- Checkbox completed: `Upload Logs: wire /upload-logs route to the actual source ingest workflow (file + paste + validation states)`
+- Implemented:
+  - Replaced `/upload-logs` placeholder content with the real `SourceIngestForm` workflow.
+  - `/upload-logs` now supports both file upload and paste ingestion flows using the existing validated source API integration.
+- Files modified:
+  - `frontend/src/app/(app)/upload-logs/page.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `curl -fsS http://localhost:8000/healthz`
+  - `docker compose logs --no-color backend --tail=40`
+  - `docker compose logs --no-color worker --tail=40`
+  - Authenticated frontend verification with `curl`:
+    - `GET /upload-logs` (200)
+    - `POST /api/sources` with valid log file (201)
+    - `POST /api/sources` with invalid file type (400)
+- Result:
+  - `/upload-logs` is now fully connected to source ingestion with validation/error handling.
+  - Backend and worker remained healthy.
+- Next checkbox: `Upload Logs: show latest uploaded sources table with quick actions (analyze, view details, delete)`
+
+## 2026-02-27 14:38:02 PST
+- Checkbox completed: `Upload Logs: show latest uploaded sources table with quick actions (analyze, view details, delete)`
+- Implemented:
+  - Added frontend source proxy endpoints for list/detail/delete/analyze:
+    - `GET /api/sources`
+    - `GET /api/sources/:sourceId`
+    - `DELETE /api/sources/:sourceId`
+    - `POST /api/sources/:sourceId/analyze`
+  - Added `LatestUploadedSourcesTable` on `/upload-logs` with quick actions (analyze, view details, delete) and loading/empty/error/action states.
+  - Wired source-ingest success to refresh the sources table via browser event.
+  - Fixed authenticated JSON proxy handling for `204/205` responses to avoid invalid JSON response construction during delete actions.
+- Files modified:
+  - `frontend/src/app/api/sources/route.ts`
+  - `frontend/src/app/api/sources/[sourceId]/route.ts`
+  - `frontend/src/app/api/sources/[sourceId]/analyze/route.ts`
+  - `frontend/src/components/sources/latest-uploaded-sources-table.tsx`
+  - `frontend/src/components/sources/source-ingest-form.tsx`
+  - `frontend/src/app/(app)/upload-logs/page.tsx`
+  - `frontend/src/lib/server-auth.ts`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `curl -fsS http://localhost:8000/healthz`
+  - `docker compose logs --no-color backend --tail=80`
+  - `docker compose logs --no-color worker --tail=80`
+  - `docker compose logs --no-color frontend --tail=120`
+  - Authenticated frontend flow verification with `curl`:
+    - `GET /upload-logs` (page render)
+    - `POST /api/sources` (create)
+    - `GET /api/sources` (list)
+    - `GET /api/sources/:id` (details)
+    - `POST /api/sources/:id/analyze` (queue)
+    - `DELETE /api/sources/:id` (delete)
+    - post-delete list check
+- Result:
+  - Upload Logs page now includes a functional latest-sources table with all required quick actions.
+  - Delete action correctly returns 204 after proxy fix.
+  - Backend/worker/frontend services remained healthy.
+- Next checkbox: `Live Tail: implement streaming log viewer (WebSocket/SSE) with pause/resume, level filter, and search`
+
+## 2026-02-27 14:41:18 PST
+- Checkbox completed: `Live Tail: implement streaming log viewer (WebSocket/SSE) with pause/resume, level filter, and search`
+- Implemented:
+  - Added backend SSE endpoint `GET /api/live-tail/stream` with auth, owner-scoped event access, level/search/analysis filters, and redacted event payload output.
+  - Added frontend authenticated streaming proxy `GET /api/live-tail/stream` for SSE pass-through.
+  - Replaced `/live-tail` placeholder page with a streaming viewer UI supporting:
+    - pause/resume controls
+    - level filter
+    - text search filter
+    - live stream status + event table
+- Files modified:
+  - `backend/analyses/views.py`
+  - `backend/loglens/urls.py`
+  - `frontend/src/lib/server-auth.ts`
+  - `frontend/src/app/api/live-tail/stream/route.ts`
+  - `frontend/src/app/(app)/live-tail/page.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `curl -fsS http://localhost:8000/healthz`
+  - End-to-end SSE verification with authenticated `curl` flows:
+    - register/upload/analyze
+    - backend stream check (`GET /api/live-tail/stream?level=error&q=timeout`)
+    - frontend stream proxy check (`GET /api/live-tail/stream?level=error&q=timeout`)
+    - `/live-tail` page render check
+  - `docker compose logs --no-color backend --tail=120`
+  - `docker compose logs --no-color worker --tail=120`
+  - `docker compose logs --no-color frontend --tail=160`
+  - `docker compose exec -T backend python manage.py check`
+- Result:
+  - SSE live-tail stream works on backend and through frontend proxy.
+  - `/live-tail` now has functional pause/resume, level filtering, and search-driven stream reconnection.
+  - Backend/worker/frontend services remained healthy.
+- Next checkbox: `Live Tail: add safety limits (max buffered lines, truncation indicator, reconnect/backoff handling)`
+
+## 2026-02-27 14:43:24 PST
+- Checkbox completed: `Live Tail: add safety limits (max buffered lines, truncation indicator, reconnect/backoff handling)`
+- Implemented:
+  - Added bounded live-tail event buffering (`MAX_BUFFERED_EVENTS=600`) to prevent unbounded in-browser memory growth.
+  - Added truncation tracking/indicator in UI when old events are dropped.
+  - Added reconnect strategy with exponential backoff (up to 15s) after stream errors.
+  - Added reconnect timing/status indicators in the Live Tail page.
+- Files modified:
+  - `frontend/src/app/(app)/live-tail/page.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `curl -fsS http://localhost:8000/healthz`
+  - Authenticated SSE verification with `curl`:
+    - backend `GET /api/live-tail/stream?level=error&q=timeout`
+    - frontend `GET /api/live-tail/stream?level=error&q=timeout`
+  - `curl` authenticated page check: `GET /live-tail` (200)
+  - `docker compose logs --no-color backend --tail=120`
+  - `docker compose logs --no-color worker --tail=120`
+  - `docker compose logs --no-color frontend --tail=200`
+  - `docker compose exec -T backend python manage.py check`
+- Result:
+  - Live Tail now has memory-safe buffering, visible truncation feedback, and automatic reconnect with bounded backoff.
+  - Streaming remained functional through backend and frontend SSE endpoints.
+- Next checkbox: `Anomalies: backend endpoint + UI table for anomaly groups (score, service, first/last seen, status)`
+
+## 2026-02-27 14:45:52 PST
+- Checkbox completed: `Anomalies: backend endpoint + UI table for anomaly groups (score, service, first/last seen, status)`
+- Implemented:
+  - Added backend anomalies list endpoint `GET /api/anomalies` that aggregates owner-scoped log-event groups by fingerprint/service.
+  - Exposed anomaly fields required by plan: score, service, first_seen, last_seen, status (plus event/analysis counts).
+  - Added frontend authenticated proxy endpoint `GET /api/anomalies`.
+  - Replaced anomalies placeholder page with a live table view including loading/empty/error states.
+- Files modified:
+  - `backend/analyses/views.py`
+  - `backend/loglens/urls.py`
+  - `frontend/src/app/api/anomalies/route.ts`
+  - `frontend/src/app/(app)/anomalies/page.tsx`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose ps`
+  - `curl -fsS http://localhost:8000/healthz`
+  - Authenticated verification flow with `curl`:
+    - register/upload/analyze
+    - backend `GET /api/anomalies`
+    - frontend proxy `GET /api/anomalies`
+    - page check `GET /anomalies`
+  - `docker compose logs --no-color backend --tail=120`
+  - `docker compose logs --no-color worker --tail=120`
+  - `docker compose logs --no-color frontend --tail=200`
+  - `docker compose exec -T backend python manage.py check`
+- Result:
+  - Anomalies endpoint and anomalies table UI are functional and owner-scoped.
+  - Backend/worker/frontend services remained healthy.
+- Next checkbox: `Anomalies: detail panel with evidence events and mark-as-reviewed action`
+
+## 2026-02-27 16:31:11 PST
+- Section completed: `11) Sidebar-linked modules (post-MVP)`
+- Completed items:
+  - `Anomalies: detail panel with evidence events and mark-as-reviewed action`
+  - `Incidents: incident list page with status/severity/owner filters and pagination`
+  - `Incidents: incident detail page with timeline, linked clusters, and remediation notes`
+  - `Reports: reports index with generated report history and download/re-generate actions`
+  - `Reports: scheduled report configuration (frequency, recipients/webhook target, report scope)`
+  - `Integrations: provider configuration UI (LLM provider, alerting/webhook endpoints, issue tracker)`
+  - `Integrations: connection test actions with safe error surfacing and audit events`
+  - `Settings: workspace-level preferences (retention, default filters, timezone)`
+  - `Settings: account security page (change password, active session list, sign-out-all-sessions)`
+  - `Add per-route authorization checks (unauthenticated redirect + forbidden states)`
+  - `Add loading/empty/error states for every sidebar-linked page`
+  - `Add e2e smoke tests covering navigation and core flows for all sidebar links`
+- Summary of implementation:
+  - Added anomaly detail/review API + UI interactions, incident list/detail API + pages, and reports history/schedule flows.
+  - Added integration configuration and connection-test APIs with safe response messaging and audit logging, plus full Integrations page UI.
+  - Added workspace preferences API and account security APIs (change password, session list from JWT outstanding tokens, sign-out-all), plus full Settings page UI.
+  - Added route-level auth middleware for protected pages and updated compose healthchecks to use `/login` for authenticated app shells.
+  - Added Playwright smoke tests for auth redirect + sidebar route navigation and heading visibility.
+- Files modified:
+  - `backend/analyses/models.py`
+  - `backend/analyses/serializers.py`
+  - `backend/analyses/views.py`
+  - `backend/analyses/migrations/0006_anomalyreviewstate.py`
+  - `backend/analyses/migrations/0007_incident.py`
+  - `backend/analyses/migrations/0008_reportrun_reportschedule.py`
+  - `backend/analyses/migrations/0009_integrationconfig_workspacepreference.py`
+  - `backend/auditlog/models.py`
+  - `backend/auditlog/migrations/0002_alter_auditlogevent_event_type.py`
+  - `backend/authn/urls.py`
+  - `backend/authn/views.py`
+  - `backend/loglens/settings.py`
+  - `backend/loglens/urls.py`
+  - `frontend/src/app/(app)/anomalies/page.tsx`
+  - `frontend/src/app/(app)/incidents/page.tsx`
+  - `frontend/src/app/(app)/incidents/[incidentId]/page.tsx`
+  - `frontend/src/app/(app)/reports/page.tsx`
+  - `frontend/src/app/(app)/integrations/page.tsx`
+  - `frontend/src/app/(app)/settings/page.tsx`
+  - `frontend/src/app/api/anomalies/*`
+  - `frontend/src/app/api/incidents/*`
+  - `frontend/src/app/api/reports/*`
+  - `frontend/src/app/api/report-schedules/*`
+  - `frontend/src/app/api/integrations/*`
+  - `frontend/src/app/api/settings/workspace/route.ts`
+  - `frontend/src/app/api/auth/change-password/route.ts`
+  - `frontend/src/app/api/auth/sessions/route.ts`
+  - `frontend/src/app/api/auth/sessions/revoke-all/route.ts`
+  - `frontend/src/middleware.ts`
+  - `frontend/playwright.config.ts`
+  - `frontend/tests/sidebar-smoke.spec.ts`
+  - `frontend/package.json`
+  - `frontend/package-lock.json`
+  - `docker-compose.yml`
+  - `docker-compose.lightsail.yml`
+  - `markdowns/ai_log_analyzer_development_plan.md`
+  - `markdowns/progress.md`
+- Commands run:
+  - `docker compose up -d`
+  - `docker compose exec -T backend python manage.py makemigrations`
+  - `docker compose exec -T backend python manage.py migrate`
+  - `docker compose exec -T backend python manage.py check`
+  - Multiple authenticated `curl` e2e checks for anomalies/incidents/reports/integrations/settings/auth-security endpoints
+  - `cd frontend && npm install --package-lock-only --no-audit --no-fund`
+  - `cd frontend && npm install --no-audit --no-fund`
+  - `cd frontend && npx playwright install chromium`
+  - `cd frontend && npx playwright test tests/sidebar-smoke.spec.ts --reporter=line`
+- Verification result: `PASS`
+  - Backend/worker/frontend services running; backend health check OK.
+  - Frontend health became unhealthy after auth middleware redirected `/`; fixed by switching frontend compose healthcheck to `/login` and revalidating healthy status.
+- Next checkbox to execute:
+  - `Decision gate: keep topbar notifications/search as functional features, or intentionally remove both until v2`

@@ -10,6 +10,9 @@ class AuditLogEvent(models.Model):
         ANALYZE_FAIL = "analyze_fail", "Analyze Fail"
         EXPORT = "export", "Export"
         DELETE = "delete", "Delete"
+        INTEGRATION_TEST = "integration_test", "Integration Test"
+        SETTINGS_UPDATE = "settings_update", "Settings Update"
+        ACCOUNT_SECURITY = "account_security", "Account Security"
 
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,

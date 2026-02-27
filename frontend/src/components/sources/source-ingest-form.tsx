@@ -73,6 +73,7 @@ export function SourceIngestForm() {
       }
 
       setSuccess(body);
+      window.dispatchEvent(new Event("sources:changed"));
       if (mode === "upload") {
         setSelectedFile(null);
       } else {

@@ -223,6 +223,12 @@ export async function proxyAuthenticatedJson(
     return failure;
   }
 
+  if (execution.backendResponse.status === 204 || execution.backendResponse.status === 205) {
+    const response = new NextResponse(null, { status: execution.backendResponse.status });
+    applySessionMutation(response, execution);
+    return response;
+  }
+
   const rawBody = await execution.backendResponse.text();
   const parsedBody = parseResponseBody(rawBody);
   const status = execution.backendResponse.status;
@@ -281,4 +287,48 @@ export async function proxyAuthenticatedBinary(
   });
   applySessionMutation(response, execution);
   return response;
+}
+
+export async function proxyAuthenticatedStream(
+  options: AuthenticatedBackendRequestOptions,
+  fallbackContentType: string
+): Promise<NextResponse> {
+  const execution = await executeAuthenticatedBackendRequest(options);
+
+  if (execution.authMissing) {
+    const unauthorized = NextResponse.json(
+      { detail: "Authentication required. Please sign in." },
+      { status: 401 }
+    );
+    applySessionMutation(unauthorized, execution);
+    return unauthorized;
+  }
+
+  if (!execution.backendResponse) {
+    const failure = NextResponse.json({ detail: "Backend request failed." }, { status: 502 });
+    applySessionMutation(failure, execution);
+    return failure;
+  }
+
+  if (execution.backendResponse.status >= 400) {
+    const rawBody = await execution.backendResponse.text();
+    const parsedBody = parseResponseBody(rawBody);
+    const payload =
+      execution.backendResponse.status === 401 ? { detail: extractDetail(parsedBody) } : parsedBody;
+    const errorResponse = NextResponse.json(payload, { status: execution.backendResponse.status });
+    applySessionMutation(errorResponse, execution);
+    return errorResponse;
+  }
+
+  const contentType = execution.backendResponse.headers.get("content-type") || fallbackContentType;
+  const streamResponse = new NextResponse(execution.backendResponse.body, {
+    status: execution.backendResponse.status,
+    headers: {
+      "content-type": contentType,
+      "cache-control": "no-cache",
+      "x-accel-buffering": "no"
+    }
+  });
+  applySessionMutation(streamResponse, execution);
+  return streamResponse;
 }
