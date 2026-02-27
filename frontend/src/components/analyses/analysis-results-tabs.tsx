@@ -57,6 +57,45 @@ function formatClusterTime(value: string | null) {
   return timestamp.toLocaleString();
 }
 
+type TimelinePoint = {
+  hour: string;
+  totalEvents: number;
+};
+
+function buildTimelinePoints(clusters: ClusterItem[]): TimelinePoint[] {
+  const buckets = new Map<string, number>();
+  for (const cluster of clusters) {
+    if (!cluster.first_seen) {
+      continue;
+    }
+
+    const timestamp = new Date(cluster.first_seen);
+    if (Number.isNaN(timestamp.getTime())) {
+      continue;
+    }
+
+    const hourKey = timestamp.toISOString().slice(0, 13);
+    buckets.set(hourKey, (buckets.get(hourKey) || 0) + cluster.count);
+  }
+
+  return Array.from(buckets.entries())
+    .sort(([hourA], [hourB]) => (hourA < hourB ? -1 : hourA > hourB ? 1 : 0))
+    .map(([hour, totalEvents]) => ({ hour, totalEvents }));
+}
+
+function formatHourLabel(hourKey: string) {
+  const timestamp = new Date(`${hourKey}:00:00.000Z`);
+  if (Number.isNaN(timestamp.getTime())) {
+    return hourKey;
+  }
+  return timestamp.toLocaleString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
 export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
   const [accessToken, setAccessToken] = useState("");
   const [activeTab, setActiveTab] = useState<TabKey>("summary");
@@ -64,6 +103,11 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
   const [clusters, setClusters] = useState<ClusterItem[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const timelinePoints = buildTimelinePoints(clusters);
+  const maxTimelineEvents =
+    timelinePoints.length > 0
+      ? timelinePoints.reduce((maxValue, point) => Math.max(maxValue, point.totalEvents), 0)
+      : 0;
 
   async function loadAnalysis() {
     if (!accessToken.trim()) {
@@ -263,10 +307,37 @@ export function AnalysisResultsTabs({ analysisId }: { analysisId: string }) {
           {activeTab === "timeline" && (
             <Card className="p-4">
               <h3 className="text-sm font-semibold">Timeline</h3>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Timeline tab scaffold is in place. Detailed trend rendering will be implemented in the next
-                iterations.
-              </p>
+              <div className="mt-3 grid gap-3 text-sm text-muted-foreground sm:grid-cols-3">
+                <p>Started: {formatClusterTime(analysis.started_at)}</p>
+                <p>Finished: {formatClusterTime(analysis.finished_at)}</p>
+                <p>Clusters: {clusters.length}</p>
+              </div>
+              {timelinePoints.length === 0 ? (
+                <p className="mt-4 rounded-lg border border-dashed border-border bg-muted/40 px-3 py-2 text-sm text-muted-foreground">
+                  Empty state: no timestamped clusters available to render a spike timeline.
+                </p>
+              ) : (
+                <div className="mt-4 space-y-2">
+                  <p className="text-sm text-muted-foreground">
+                    Event spikes by hour (derived from cluster first-seen timestamps).
+                  </p>
+                  <div className="space-y-2">
+                    {timelinePoints.map((point) => {
+                      const barWidth =
+                        maxTimelineEvents > 0 ? `${Math.max((point.totalEvents / maxTimelineEvents) * 100, 8)}%` : "8%";
+                      return (
+                        <div key={point.hour} className="grid gap-2 sm:grid-cols-[180px_1fr_60px] sm:items-center">
+                          <p className="text-xs text-muted-foreground">{formatHourLabel(point.hour)}</p>
+                          <div className="h-3 rounded-full bg-muted">
+                            <div className="h-full rounded-full bg-primary/70" style={{ width: barWidth }} />
+                          </div>
+                          <p className="text-right text-xs text-muted-foreground">{point.totalEvents}</p>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
             </Card>
           )}
         </>

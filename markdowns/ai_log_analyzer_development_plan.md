@@ -49,7 +49,7 @@ Check boxes as you implement.
 - [x] Analysis results page with tabs:
   - [x] Summary
   - [x] Clusters
-  - [ ] Timeline
+  - [x] Timeline
 - [ ] Cluster detail drawer/page
 - [ ] Search/filter events
 
